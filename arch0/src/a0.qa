@@ -2,6 +2,10 @@ System a0
 
 Event sonar : p(Distance, Angle) 
 
+Dispatch sonarreached : sonarreached
+Dispatch robotareastart : robotareastart
+Dispatch robotareastop : robotareastop
+
 Context ctxBase ip [ host="localhost" port=8079] -g green
 
 QActor sensorsonar context ctxBase  {    
@@ -25,3 +29,36 @@ QActor sensorsonar context ctxBase  {
 	Plan work resumeLastPlan
 		repeatPlan
 }  
+
+QActor robot context ctxBase{
+	Plan init normal
+		println("ROBOT: Ready" );
+		switchToPlan waitConsoleStart
+	
+	Plan waitConsoleStart
+		println("ROBOT: I'm waiting start msg" );
+		/*
+		 * Attendo 10 sec lo start, se non arriva termino il Robot
+		 */
+		receiveMsg time(10000);
+		onMsg robotareastart:robotareastart -> switchToPlan goStraight else endPlan "ROBOT: finish!"
+		
+	Plan goStraight resumeLastPlan
+		println("ROBOT: goStraight");
+		receiveMsg time(1000);
+		onMsg sonarreached:sonarreached -> switchToPlan sonarReached;
+		onMsg robotareastop:robotareastop -> switchToPlan stopTheRobot;
+		repeatPlan
+		
+	Plan sonarReached resumeLastPlan
+		demo assign(state,sonarreached);
+		println("ROBOT: Stop, Turn Left, Start Blinking, Take Pictures, Send Photo, Stop Blinking, Turn Right, Restart")
+	
+	Plan thresholdExceeded
+		demo assign(state,thresholdexceeded);
+		switchToPlan stopTheRobot
+	
+	Plan stopTheRobot
+		println("ROBOT: Stop");
+		switchToPlan waitConsoleStart
+}
