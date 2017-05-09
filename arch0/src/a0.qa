@@ -6,29 +6,7 @@ Dispatch sonarreached : sonarreached
 Dispatch robotareastart : robotareastart
 Dispatch robotareastop : robotareastop
 
-Context ctxBase ip [ host="localhost" port=8079] -g green
-
-QActor sensorsonar context ctxBase  {    
-	Rules{
-		/* SIMULATION DATA */
-		//simulation.	
-		p(58,59).p(54,68).p(51,79).p(50,90).p(51,101).
-		p(54,112).p(58,121).p(64,129).p(71,135).p(78,140).
-		p(86,144).p(94,148).p(103,151).p(112,153).p(121,156).
-		p(130,157).p(139,159).p(149,160).p(158,162).
-	}	  
- 	Plan init normal     
- 		println("SONARS: Start");
- 		[ !? simulation ] switchToPlan workSimulate else switchToPlan work;
-  		println("SONARS: finish")      
- 	Plan workSimulate   resumeLastPlan
-  	 	[ !? p(D, A) ] println(p(D, A)); 
-		[ ?? p(D, A) ] emit sonar : p(D, A);
-		delay time(5000);
-		repeatPlan 15	
-	Plan work resumeLastPlan
-		repeatPlan
-}  
+Context ctxBase ip [ host="localhost" port=8079] -g green -httpserver
 
 QActor robot context ctxBase{
 	Plan init normal
@@ -62,3 +40,72 @@ QActor robot context ctxBase{
 		println("ROBOT: Stop");
 		switchToPlan waitConsoleStart
 }
+
+QActor console context ctxBase{
+	Plan init normal
+		println("CONSOLE: ready!");
+		switchToPlan senseSonar
+		
+	Plan senseSonar resumeLastPlan
+		/*
+		 * Attendo un evento dai sonar per 10 secondi, 
+		 * se non arriva nulla termino la Console
+		 */ 
+		sense time(10000) sonar -> continue;
+		[ !? tout(R,W) ] println (tout(R,W));
+		[ ?? tout(R,W) ] switchToPlan stopConsole;
+		onEvent sonar: p(D, A) -> actorOp memoSonarEvent(D, A); // only for test
+		onEvent sonar: p(D, A) -> switchToPlan checkAreaA;
+		onEvent sonar: p(D, A) -> switchToPlan checkAreaB;
+		onEvent sonar: p(D, A) -> switchToPlan checkSonarReached;
+		repeatPlan
+		
+	Plan checkAreaA resumeLastPlan
+		onEvent sonar: p(D, A) -> actorOp checkAreaA(A);
+		[ !? actorOpDone(OP,1)] println("CONSOLE: robot in area A!");
+		[ ?? actorOpDone(OP,1)] forward robot -m robotareastart:robotareastart
+		
+	Plan checkAreaB resumeLastPlan
+		onEvent sonar: p(D, A) -> actorOp checkAreaB(A);
+		[ !? actorOpDone(OP,1)] println("CONSOLE: robot in area B!");
+		[ ?? actorOpDone(OP,1)] forward robot -m robotareastop:robotareastop
+		
+	Plan checkSonarReached resumeLastPlan
+		onEvent sonar: p(D, A) -> actorOp checkSonarReached(A);
+		[ !? actorOpDone(OP,1)] println("CONSOLE: sonarReached!");
+		[ !? actorOpDone(OP,1)] demo assign(state,sonarreached);
+		[ ?? actorOpDone(OP,1)] forward robot -m sonarreached:sonarreached
+		
+	Plan stopConsole
+		forward robot -m robotareastop:robotareastop;
+		demo assign(state, finished);
+		println("CONSOLE: stop!")
+}
+
+QActor sensorsonar context ctxBase  {    
+	Rules{
+		/* SIMULATION DATA */
+		simulation.	
+		p(58,59).p(54,68).p(51,79).p(50,90).p(51,101).
+		p(54,112).p(58,121).p(64,129).p(71,135).p(78,140).
+		p(86,144).p(94,148).p(103,151).p(112,153).p(121,156).
+		p(130,157).p(139,159).p(149,160).p(158,162).
+		
+		/*
+		 * Area A -> p(58,59)
+		 * Davanti Sonar -> p(50,90)
+		 * Area B -> p(158,162)
+		 */
+	}	  
+ 	Plan init normal     
+ 		println("SONARS: Start");
+ 		[ !? simulation ] switchToPlan workSimulate else switchToPlan work;
+  		println("SONARS: finish")      
+ 	Plan workSimulate   resumeLastPlan
+  	 	[ !? p(D, A) ] println(p(D, A)); 
+		[ ?? p(D, A) ] emit sonar : p(D, A);
+		delay time(5000);
+		repeatPlan 15
+	Plan work resumeLastPlan
+		repeatPlan
+}  
