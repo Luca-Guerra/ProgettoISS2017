@@ -1,12 +1,20 @@
 System a0
 
 Event sonar : p(Distance, Angle) 
+Event usercmd : usercmd(X)
 
 Dispatch sonarreached : sonarreached
 Dispatch robotareastart : robotareastart
 Dispatch robotareastop : robotareastop
 
 Context ctxBase ip [ host="localhost" port=8079] -g green -httpserver
+EventHandler evh_sonar for sonar -print{ 
+	memo currentEvent for console
+};
+EventHandler evh_user for usercmd -print{ 
+	memo currentEvent for console
+};
+
 
 QActor robot context ctxBase{
 	Plan init normal
@@ -51,13 +59,15 @@ QActor console context ctxBase{
 		 * Attendo un evento dai sonar per 10 secondi, 
 		 * se non arriva nulla termino la Console
 		 */ 
+		[??msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] println(p(D,A));
+		/*
 		sense time(10000) sonar -> continue;
 		[ !? tout(R,W) ] println (tout(R,W));
 		[ ?? tout(R,W) ] switchToPlan stopConsole;
 		onEvent sonar: p(D, A) -> actorOp memoSonarEvent(D, A); // only for test
 		onEvent sonar: p(D, A) -> switchToPlan checkAreaA;
 		onEvent sonar: p(D, A) -> switchToPlan checkAreaB;
-		onEvent sonar: p(D, A) -> switchToPlan checkSonarReached;
+		onEvent sonar: p(D, A) -> switchToPlan checkSonarReached;*/
 		repeatPlan
 		
 	Plan checkAreaA resumeLastPlan
