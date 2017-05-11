@@ -6,8 +6,12 @@
 </head>
 <body>
 <h3 id="h3">Robot Web UI</h3>
-
-<div> 
+<!--<input type="button" value="A" onmousedown="send('p(58,59)');" />-->
+<input type="button" value="A" onmousedown="send('p(1,1)');" />
+<input type="button" value="ND_S1" onmousedown="send('p(58,59)');" />
+<input type="button" value="D_S1" onmousedown="send('p(58,59)');" />
+<input type="button" value="B" onmousedown="send('p(58,59)');" />
+<div style="display:none"> 
 <input size=85% type="textArea" id="input" value="[ true ], play('./audio/music_interlude20.wav'),20000,'alarm,obstacle', 'handleAlarm,handleObstacle'" />
 <input style="height: 30px; width: 90px;" type="button"
  id="ExternalForward" value="RUN" 
@@ -18,7 +22,7 @@
 </textarea>
 </div>
 
-<div id="bottom">
+<div id="bottom" style="display:none">
 <center>
 <button onclick="setSpeed('high');">speedHigh</button>
 <button onclick="setSpeed('medium');">speedMedium</button>
@@ -26,7 +30,7 @@
 </center>
    
 </div>
- 	<table id="robots">
+ 	<table style="display:none" id="robots">
 		<tr>
 			<td>
 				<table>
