@@ -85,7 +85,7 @@ QActor console context ctxBase{
 QActor sensorsonar context ctxBase  {    
 	Rules{
 		/* SIMULATION DATA */
-		simulation.	
+		//simulation.	
 		p(58,59).p(54,68).p(51,79).p(50,90).p(51,101).
 		p(54,112).p(58,121).p(64,129).p(71,135).p(78,140).
 		p(86,144).p(94,148).p(103,151).p(112,153).p(121,156).
