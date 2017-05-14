@@ -4,8 +4,8 @@ Event sonar : p(Distance, Angle)
 Event usercmd : usercmd(X)
 
 Dispatch sonarreached : sonarreached
-Dispatch robotareastart : robotareastart
-Dispatch robotareastop : robotareastop
+Dispatch robotstart:robotstart
+Dispatch robotstop : robotstop
 
 Context ctxBase ip [ host="localhost" port=8079] -g green -httpserver
 EventHandler evh_sonar for sonar -print{ 
@@ -27,19 +27,25 @@ QActor robot context ctxBase{
 		 * Attendo 10 sec lo start, se non arriva termino il Robot
 		 */
 		receiveMsg time(10000);
-		onMsg robotareastart:robotareastart -> switchToPlan goStraight else endPlan "ROBOT: finish!"
+		onMsg robotstart:robotstart -> switchToPlan goStraight;// else endPlan "ROBOT: finish!"
+		repeatPlan
 		
 	Plan goStraight resumeLastPlan
 		println("ROBOT: goStraight");
 		receiveMsg time(1000);
 		onMsg sonarreached:sonarreached -> switchToPlan sonarReached;
-		onMsg robotareastop:robotareastop -> switchToPlan stopTheRobot;
+		onMsg robotstop : robotstop -> switchToPlan stopTheRobot;
 		repeatPlan
 		
 	Plan sonarReached resumeLastPlan
 		demo assign(state,sonarreached);
 		println("ROBOT: Stop, Turn Left, Start Blinking, Take Pictures, Send Photo, Stop Blinking, Turn Right, Restart")
 	
+	/*
+	 *  SCENARIO: 
+	 * 	ID          : Robot Reaches Sonar
+	 * 	DESCRIPTION : The Robot reaches the signal emitted by the Sonar
+	 */
 	Plan thresholdExceeded
 		demo assign(state,thresholdexceeded);
 		switchToPlan stopTheRobot
@@ -49,45 +55,65 @@ QActor robot context ctxBase{
 		switchToPlan waitConsoleStart
 }
 
-QActor console context ctxBase{
+QActor console context ctxBase {
+	Rules{
+		/*
+		 * CONFIGURATION
+		 */
+		value(area_a_angle, 60). // coord AreaA
+		value(area_a_dist, 60).
+		value(area_b_angle, 160). // coord AreaB
+		value(area_b_dist, 150).
+	}
 	Plan init normal
 		println("CONSOLE: ready!");
 		switchToPlan senseSonar
 		
 	Plan senseSonar resumeLastPlan
-		/*
-		 * Attendo un evento dai sonar per 10 secondi, 
-		 * se non arriva nulla termino la Console
-		 */ 
-		[??msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] println(p(D,A));
-		/*
-		sense time(10000) sonar -> continue;
+		[!?msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] actorOp memoSonarEvent(D, A);
+		[!?msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] switchToPlan checkAreaA;
+		[!?msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] switchToPlan checkAreaB;
+		[!?msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] switchToPlan checkSonarReached;
+		/*sense time(10000) sonar -> continue;
 		[ !? tout(R,W) ] println (tout(R,W));
 		[ ?? tout(R,W) ] switchToPlan stopConsole;
-		onEvent sonar: p(D, A) -> actorOp memoSonarEvent(D, A); // only for test
+		onEvent sonar: p(D, A) -> actorOp memoSonarEvent(D, A);
 		onEvent sonar: p(D, A) -> switchToPlan checkAreaA;
 		onEvent sonar: p(D, A) -> switchToPlan checkAreaB;
 		onEvent sonar: p(D, A) -> switchToPlan checkSonarReached;*/
 		repeatPlan
 		
 	Plan checkAreaA resumeLastPlan
-		onEvent sonar: p(D, A) -> actorOp checkAreaA(A);
+		//onEvent sonar: p(D, A) -> actorOp inAreaA;
+		[!?msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] actorOp inAreaA;
 		[ !? actorOpDone(OP,1)] println("CONSOLE: robot in area A!");
-		[ ?? actorOpDone(OP,1)] forward robot -m robotareastart:robotareastart
+		[ ?? actorOpDone(OP,1)] forward robot -m robotstart:robotstart
 		
+	/*
+	 *  SCENARIO: 
+	 * 	ID          : RobotReachBZone
+	 * 	DESCRIPTION : Robot reaches B zone and stops
+	 */
 	Plan checkAreaB resumeLastPlan
-		onEvent sonar: p(D, A) -> actorOp checkAreaB(A);
+		//onEvent sonar: p(D, A) -> actorOp inAreaB;
+		[!?msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] actorOp inAreaB;
 		[ !? actorOpDone(OP,1)] println("CONSOLE: robot in area B!");
-		[ ?? actorOpDone(OP,1)] forward robot -m robotareastop:robotareastop
+		[ ?? actorOpDone(OP,1)] forward robot -m robotstop : robotstop
 		
+	/*
+	 *  SCENARIO: 
+	 * 	ID          : Robot Reaches Sonar
+	 * 	DESCRIPTION : The Robot reaches the signal emitted by the Sonar
+	 */
 	Plan checkSonarReached resumeLastPlan
-		onEvent sonar: p(D, A) -> actorOp checkSonarReached(A);
+		//onEvent sonar: p(D, A) -> actorOp checkSonarReached;
+		[??msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] actorOp isSonarReached;
 		[ !? actorOpDone(OP,1)] println("CONSOLE: sonarReached!");
 		[ !? actorOpDone(OP,1)] demo assign(state,sonarreached);
 		[ ?? actorOpDone(OP,1)] forward robot -m sonarreached:sonarreached
 		
 	Plan stopConsole
-		forward robot -m robotareastop:robotareastop;
+		forward robot -m robotstop : robotstop;
 		demo assign(state, finished);
 		println("CONSOLE: stop!")
 }

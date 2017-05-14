@@ -3,6 +3,7 @@
 This code is generated only ONCE
 */
 package it.unibo.console;
+import alice.tuprolog.NoSolutionException;
 import it.unibo.is.interfaces.IOutputEnvView;
 import it.unibo.qactors.QActorContext;
 
@@ -12,19 +13,57 @@ public class Console extends AbstractConsole {
 	}
 	
 	public void memoSonarEvent(int D, int A){
-		solveGoal("assign(d,"+D+")");
-		solveGoal("assign(a,"+A+")");
+		outEnvView.addOutput("memo");
+		solveGoal("assign(dist,"+D+")");
+		solveGoal("assign(angle,"+A+")");
 	}
 	
-	public int checkAreaA(int angle){
-		return angle < 70 ? 1 : 0;
+	public int inAreaA(){
+		int area_a_dist;
+		int area_a_angle;
+		int dist; 
+		int angle;
+		try {
+			dist = getFromKB("dist");
+			angle = getFromKB("angle");
+			area_a_dist = getFromKB("area_a_dist");
+			area_a_angle = getFromKB("area_a_angle");
+			return ((dist < area_a_dist) && (angle < area_a_angle)) ? 1 : 0;
+		} catch (NoSolutionException e) {
+			outEnvView.addOutput("eccezione:" + e.getMessage());
+		}
+		return 3;
 	}
 	
-	public int checkAreaB(int angle){
-		return angle > 160 ? 1 : 0;
+	public int inAreaB(){
+		int area_b_dist;
+		int area_b_angle;
+		int dist; 
+		int angle;
+		try {
+			dist = getFromKB("dist");
+			angle = getFromKB("angle");
+			area_b_dist = getFromKB("area_b_dist");
+			area_b_angle = getFromKB("area_b_angle");
+			return ((dist > area_b_dist) && (angle > area_b_angle)) ? 1 : 0;
+		} catch (NoSolutionException e) {
+			outEnvView.addOutput("eccezione:" + e.getMessage());
+		}
+		return -1;
 	}
 	
-	public int checkSonarReached(int angle){
-		return (angle > 85 && angle < 95) ? 1 : 0;
+	public int isSonarReached(){
+		int angle;
+		try {
+			angle = getFromKB("angle");
+			return (angle > 85 && angle < 95) ? 1 : 0;
+		} catch (NoSolutionException e) {
+			outEnvView.addOutput("eccezione:" + e.getMessage());
+		}
+		return -1;
+	}
+	
+	private int getFromKB(String variable) throws NoSolutionException{
+		return Integer.parseInt(solveGoal("value(" + variable + ",X)").getVarValue("X").toString());
 	}
 }
