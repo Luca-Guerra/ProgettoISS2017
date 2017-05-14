@@ -70,7 +70,7 @@ QActor console context ctxBase {
 		switchToPlan senseSonar
 		
 	Plan senseSonar resumeLastPlan
-		[!?msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] actorOp memoSonarEvent(D, A);
+		[??msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] actorOp memoSonarEvent(D, A);
 		[ !? actorOpDone(OP,1)] switchToPlan checkAreaA;
 		[ !? actorOpDone(OP,1)] switchToPlan checkAreaB;
 		[ !? actorOpDone(OP,1)] switchToPlan checkSonarReached;
@@ -85,7 +85,7 @@ QActor console context ctxBase {
 		
 	Plan checkAreaA resumeLastPlan
 		//onEvent sonar: p(D, A) -> actorOp inAreaA;
-		[!?msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] actorOp inAreaA;
+		actorOp inAreaA;
 		[ !? actorOpDone(OP,1)] println("CONSOLE: robot in area A!");
 		[ ?? actorOpDone(OP,1)] forward robot -m robotstart:robotstart
 		
@@ -96,7 +96,7 @@ QActor console context ctxBase {
 	 */
 	Plan checkAreaB resumeLastPlan
 		//onEvent sonar: p(D, A) -> actorOp inAreaB;
-		[!?msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] actorOp inAreaB;
+		actorOp inAreaB;
 		[ !? actorOpDone(OP,1)] println("CONSOLE: robot in area B!");
 		[ ?? actorOpDone(OP,1)] forward robot -m robotstop : robotstop
 		
@@ -107,7 +107,7 @@ QActor console context ctxBase {
 	 */
 	Plan checkSonarReached resumeLastPlan
 		//onEvent sonar: p(D, A) -> actorOp checkSonarReached;
-		[??msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] actorOp sonarReached;
+		actorOp sonarReached;
 		[ !? actorOpDone(OP,1)] println("CONSOLE: sonarReached!");
 		[ !? actorOpDone(OP,1)] demo assign(state,sonarreached);
 		[ ?? actorOpDone(OP,1)] forward robot -m sonarreached:sonarreached
