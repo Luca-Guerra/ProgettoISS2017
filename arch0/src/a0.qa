@@ -71,9 +71,9 @@ QActor console context ctxBase {
 		
 	Plan senseSonar resumeLastPlan
 		[!?msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] actorOp memoSonarEvent(D, A);
-		[!?msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] switchToPlan checkAreaA;
-		[!?msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] switchToPlan checkAreaB;
-		[!?msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] switchToPlan checkSonarReached;
+		[ !? actorOpDone(OP,1)] switchToPlan checkAreaA;
+		[ !? actorOpDone(OP,1)] switchToPlan checkAreaB;
+		[ !? actorOpDone(OP,1)] switchToPlan checkSonarReached;
 		/*sense time(10000) sonar -> continue;
 		[ !? tout(R,W) ] println (tout(R,W));
 		[ ?? tout(R,W) ] switchToPlan stopConsole;
@@ -107,7 +107,7 @@ QActor console context ctxBase {
 	 */
 	Plan checkSonarReached resumeLastPlan
 		//onEvent sonar: p(D, A) -> actorOp checkSonarReached;
-		[??msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] actorOp isSonarReached;
+		[??msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] actorOp sonarReached;
 		[ !? actorOpDone(OP,1)] println("CONSOLE: sonarReached!");
 		[ !? actorOpDone(OP,1)] demo assign(state,sonarreached);
 		[ ?? actorOpDone(OP,1)] forward robot -m sonarreached:sonarreached

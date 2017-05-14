@@ -12,10 +12,11 @@ public class Console extends AbstractConsole {
 		super(actorId, myCtx, outEnvView);
 	}
 	
-	public void memoSonarEvent(int D, int A){
+	public int memoSonarEvent(int D, int A){
 		outEnvView.addOutput("memo");
 		solveGoal("assign(dist,"+D+")");
 		solveGoal("assign(angle,"+A+")");
+		return 1;
 	}
 	
 	public int inAreaA(){
@@ -52,7 +53,7 @@ public class Console extends AbstractConsole {
 		return -1;
 	}
 	
-	public int isSonarReached(){
+	public int sonarReached(){
 		int angle;
 		try {
 			angle = getFromKB("angle");
