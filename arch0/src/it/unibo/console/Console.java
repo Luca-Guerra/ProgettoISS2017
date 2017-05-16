@@ -33,7 +33,7 @@ public class Console extends AbstractConsole {
 		} catch (NoSolutionException e) {
 			outEnvView.addOutput("eccezione:" + e.getMessage());
 		}
-		return 3;
+		return 0;
 	}
 	
 	public int inAreaB(){
@@ -61,7 +61,7 @@ public class Console extends AbstractConsole {
 		} catch (NoSolutionException e) {
 			outEnvView.addOutput("eccezione:" + e.getMessage());
 		}
-		return -1;
+		return 0;
 	}
 	
 	private int getFromKB(String variable) throws NoSolutionException{
