@@ -67,13 +67,19 @@ QActor console context ctxBase {
 	}
 	Plan init normal
 		println("CONSOLE: ready!");
+		demo assign(noevent,0);
 		switchToPlan senseSonar
 		
 	Plan senseSonar resumeLastPlan
-		[??msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] actorOp memoSonarEvent(D, A);
+		[ ??msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] actorOp memoSonarEvent(D, A) else demo inc(noevent,1,X);
 		[ !? actorOpDone(memoSonarEvent(D, A),1)] switchToPlan checkAreaA;
 		[ !? actorOpDone(memoSonarEvent(D, A),1)] switchToPlan checkAreaB;
-		[ !? actorOpDone(memoSonarEvent(D, A),1)] switchToPlan checkSonarReached;
+		[ ?? actorOpDone(memoSonarEvent(D, A),1)] switchToPlan checkSonarReached;
+		/*
+		 * If the Console doesn't receive an event from a Sonar stop it self
+		 */
+		[ !? value(noevent,10)] switchToPlan stopConsole;
+		delay time(1000);
 		/*sense time(10000) sonar -> continue;
 		[ !? tout(R,W) ] println (tout(R,W));
 		[ ?? tout(R,W) ] switchToPlan stopConsole;
