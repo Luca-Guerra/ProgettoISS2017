@@ -24,9 +24,9 @@ QActor robot context ctxBase{
 	Plan waitConsoleStart
 		println("ROBOT: I'm waiting start msg" );
 		/*
-		 * Attendo 10 sec lo start, se non arriva termino il Robot
+		 * Attendo 5 minuti lo start, se non arriva termino il Robot
 		 */
-		receiveMsg time(10000);
+		receiveMsg time(300000);
 		onMsg robotstart:robotstart -> switchToPlan goStraight;// else endPlan "ROBOT: finish!"
 		repeatPlan
 		
@@ -71,9 +71,9 @@ QActor console context ctxBase {
 		
 	Plan senseSonar resumeLastPlan
 		[??msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] actorOp memoSonarEvent(D, A);
-		[ !? actorOpDone(OP,1)] switchToPlan checkAreaA;
-		[ !? actorOpDone(OP,1)] switchToPlan checkAreaB;
-		[ !? actorOpDone(OP,1)] switchToPlan checkSonarReached;
+		[ !? actorOpDone(memoSonarEvent(D, A),1)] switchToPlan checkAreaA;
+		[ !? actorOpDone(memoSonarEvent(D, A),1)] switchToPlan checkAreaB;
+		[ !? actorOpDone(memoSonarEvent(D, A),1)] switchToPlan checkSonarReached;
 		/*sense time(10000) sonar -> continue;
 		[ !? tout(R,W) ] println (tout(R,W));
 		[ ?? tout(R,W) ] switchToPlan stopConsole;
@@ -86,8 +86,8 @@ QActor console context ctxBase {
 	Plan checkAreaA resumeLastPlan
 		//onEvent sonar: p(D, A) -> actorOp inAreaA;
 		actorOp inAreaA;
-		[ !? actorOpDone(OP,1)] println("CONSOLE: robot in area A!");
-		[ ?? actorOpDone(OP,1)] forward robot -m robotstart:robotstart
+		[ !? actorOpDone(inAreaA,1)] println("CONSOLE: robot in area A!");
+		[ ?? actorOpDone(inAreaA,1)] forward robot -m robotstart:robotstart
 		
 	/*
 	 *  SCENARIO: 
@@ -97,8 +97,8 @@ QActor console context ctxBase {
 	Plan checkAreaB resumeLastPlan
 		//onEvent sonar: p(D, A) -> actorOp inAreaB;
 		actorOp inAreaB;
-		[ !? actorOpDone(OP,1)] println("CONSOLE: robot in area B!");
-		[ ?? actorOpDone(OP,1)] forward robot -m robotstop : robotstop
+		[ !? actorOpDone(inAreaB,1)] println("CONSOLE: robot in area B!");
+		[ ?? actorOpDone(inAreaB,1)] forward robot -m robotstop : robotstop
 		
 	/*
 	 *  SCENARIO: 
@@ -108,9 +108,9 @@ QActor console context ctxBase {
 	Plan checkSonarReached resumeLastPlan
 		//onEvent sonar: p(D, A) -> actorOp checkSonarReached;
 		actorOp sonarReached;
-		[ !? actorOpDone(OP,1)] println("CONSOLE: sonarReached!");
-		[ !? actorOpDone(OP,1)] demo assign(state,sonarreached);
-		[ ?? actorOpDone(OP,1)] forward robot -m sonarreached:sonarreached
+		[ !? actorOpDone(sonarReached,1)] println("CONSOLE: sonarReached!");
+		[ !? actorOpDone(sonarReached,1)] demo assign(state,sonarreached);
+		[ ?? actorOpDone(sonarReached,1)] forward robot -m sonarreached:sonarreached
 		
 	Plan stopConsole
 		forward robot -m robotstop : robotstop;
