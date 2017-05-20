@@ -4,10 +4,16 @@ This code is generated only ONCE
 */
 package it.unibo.console;
 import alice.tuprolog.NoSolutionException;
+import it.unibo.is.interfaces.IActivity;
+import it.unibo.is.interfaces.IIntent;
 import it.unibo.is.interfaces.IOutputEnvView;
 import it.unibo.qactors.QActorContext;
 
-public class Console extends AbstractConsole { 
+public class Console extends AbstractConsole implements IActivity { 
+	private String actionA = "A";
+	private String actionS1 = "S1";
+	private String actionB = "B";
+	
 	public Console(String actorId, QActorContext myCtx, IOutputEnvView outEnvView )  throws Exception{
 		super(actorId, myCtx, outEnvView);
 	}
@@ -66,5 +72,45 @@ public class Console extends AbstractConsole {
 	
 	private int getFromKB(String variable) throws NoSolutionException{
 		return Integer.parseInt(solveGoal("value(" + variable + ",X)").getVarValue("X").toString());
+	}
+
+	public boolean activateGui() throws Exception{
+		outEnvView.getEnv().addCmdPanel("btn", new String[]{actionA,actionS1,actionB}, this);
+		return true;
+	}
+	
+	@Override
+	public void execAction(String cmd) {
+		try {
+			if(cmd.equals(actionA)){
+				this.emit("sonar", "p(58,59)");
+			}
+			else if(cmd.equals(actionS1)){
+				this.emit("sonar", "p(50,90)");
+			}
+			else if(cmd.equals(actionB)){
+				this.emit("sonar", "p(158,162)");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} 
+	}
+
+	@Override
+	public void execAction() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void execAction(IIntent input) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public String execActionWithAnswer(String cmd) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

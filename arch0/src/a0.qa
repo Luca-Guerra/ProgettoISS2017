@@ -30,32 +30,28 @@ QActor robot context ctxBase{
 		onMsg robotstart:robotstart -> switchToPlan goStraight;// else endPlan "ROBOT: finish!"
 		repeatPlan
 		
-	/*
-	 *  SCENARIO: 
-	 * 	ID          : Robot go straight on
-	 * 	DESCRIPTION : The Robot continues in a straight line to the B zone
-	 */
 	Plan goStraight resumeLastPlan
 		println("ROBOT: goStraight");
-		demo assign(state,gostraight);
 		receiveMsg time(1000);
 		onMsg sonarreached:sonarreached -> switchToPlan sonarReached;
 		onMsg robotstop : robotstop -> switchToPlan stopTheRobot;
 		repeatPlan
 		
+	Plan sonarReached resumeLastPlan
+		demo assign(state,sonarreached);
+		println("ROBOT: Stop, Turn Left, Start Blinking, Take Pictures, Send Photo, Stop Blinking, Turn Right, Restart")
+	
 	/*
 	 *  SCENARIO: 
 	 * 	ID          : Robot Reaches Sonar
 	 * 	DESCRIPTION : The Robot reaches the signal emitted by the Sonar
 	 */
-	Plan sonarReached resumeLastPlan
-		demo assign(state,sonarreached);
-		println("ROBOT: Stop, Turn Left, Start Blinking, Take Pictures, Send Photo, Stop Blinking, Turn Right, Restart");
-		delay time(2000) // simulo il tempo di operazione
-		
+	Plan thresholdExceeded
+		demo assign(state,thresholdexceeded);
+		switchToPlan stopTheRobot
+	
 	Plan stopTheRobot
 		println("ROBOT: Stop");
-		demo assign(state,stop);
 		switchToPlan waitConsoleStart
 }
 
@@ -70,14 +66,13 @@ QActor console context ctxBase {
 		value(area_b_dist, 150).
 	}
 	Plan init normal
+		actorOp activateGui;
 		println("CONSOLE: ready!");
 		demo assign(noevent,0);
 		switchToPlan senseSonar
 		
 	Plan senseSonar resumeLastPlan
-		//[ ??msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(D,A))), SEQNUM )] actorOp memoSonarEvent(D, A) else demo inc(noevent,1,X);
-		[ ??msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(D,A), SEQNUM )] actorOp memoSonarEvent(D,A) else demo inc(noevent,1,X);
-		
+		[ ??msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(D,A), SEQNUM )] actorOp memoSonarEvent(D, A) else demo inc(noevent,1,X);
 		/*
 		 * If the Console doesn't receive an event from a Sonar stop it self
 		 */
