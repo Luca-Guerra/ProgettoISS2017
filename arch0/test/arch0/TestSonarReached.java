@@ -14,7 +14,7 @@ import it.unibo.qactors.akka.QActor;
 
 import org.junit.Test;
 
-public class TestSonarReach {
+public class TestSonarReached {
 
 	private QActorContext ctx;
 	private QActor console;
