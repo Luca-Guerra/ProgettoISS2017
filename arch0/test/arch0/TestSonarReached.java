@@ -64,7 +64,7 @@ public class TestSonarReached {
 			Thread.sleep(1000);
 			// sonarreached event
 			sonar.emit("sonar", "p(50,90)");
-			Thread.sleep(2000);
+			Thread.sleep(3000);
 			assertTrue("execTest", robot.solveGoal("value(state,X)").getVarValue("X").toString().equals("sonarreached"));
 			Thread.sleep(4000); // attendo il termine dell'operazione
 			// robot gostraight
@@ -72,7 +72,7 @@ public class TestSonarReached {
 			Thread.sleep(1000);
 			// area B event
 			sonar.emit("sonar", "p(158,162)");
-			Thread.sleep(2000);
+			Thread.sleep(10000);
 			assertTrue("execTest", robot.solveGoal("value(state,X)").getVarValue("X").toString().equals("stop"));
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
