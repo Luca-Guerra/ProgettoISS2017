@@ -30,28 +30,32 @@ QActor robot context ctxBase{
 		onMsg robotstart:robotstart -> switchToPlan goStraight;// else endPlan "ROBOT: finish!"
 		repeatPlan
 		
+	/*		
+ 	 *  SCENARIO: 		
+ 	 * 	ID          : Robot go straight on		
+ 	 * 	DESCRIPTION : The Robot continues in a straight line to the B zone		
+ 	 */
 	Plan goStraight resumeLastPlan
 		println("ROBOT: goStraight");
+		demo assign(state,gostraight);
 		receiveMsg time(1000);
 		onMsg sonarreached:sonarreached -> switchToPlan sonarReached;
 		onMsg robotstop : robotstop -> switchToPlan stopTheRobot;
 		repeatPlan
-		
-	Plan sonarReached resumeLastPlan
-		demo assign(state,sonarreached);
-		println("ROBOT: Stop, Turn Left, Start Blinking, Take Pictures, Send Photo, Stop Blinking, Turn Right, Restart")
 	
 	/*
 	 *  SCENARIO: 
 	 * 	ID          : Robot Reaches Sonar
 	 * 	DESCRIPTION : The Robot reaches the signal emitted by the Sonar
 	 */
-	Plan thresholdExceeded
-		demo assign(state,thresholdexceeded);
-		switchToPlan stopTheRobot
+	Plan sonarReached resumeLastPlan
+		demo assign(state,sonarreached);
+		println("ROBOT: Stop, Turn Left, Start Blinking, Take Pictures, Send Photo, Stop Blinking, Turn Right, Restart");
+		delay time(2000) // simulo il tempo di operazione
 	
 	Plan stopTheRobot
 		println("ROBOT: Stop");
+		demo assign(state,stop);
 		switchToPlan waitConsoleStart
 }
 
