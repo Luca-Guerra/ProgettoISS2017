@@ -72,7 +72,7 @@ public class TestSonarReached {
 			Thread.sleep(1000);
 			// area B event
 			sonar.emit("sonar", "p(158,162)");
-			Thread.sleep(10000);
+			Thread.sleep(2000);
 			assertTrue("execTest", robot.solveGoal("value(state,X)").getVarValue("X").toString().equals("stop"));
 		} catch (Exception e) {
 			System.out.println(e.getMessage());

@@ -11,7 +11,9 @@ import it.unibo.qactors.QActorContext;
 
 public class Console extends AbstractConsole implements IActivity { 
 	private String actionA = "A";
+	private String actionNonDavantiS1_1 = "ND_S1_1";
 	private String actionS1 = "S1";
+	private String actionNonDavantiS1_2 = "ND_S1_2";
 	private String actionB = "B";
 	
 	public Console(String actorId, QActorContext myCtx, IOutputEnvView outEnvView )  throws Exception{
@@ -75,7 +77,7 @@ public class Console extends AbstractConsole implements IActivity {
 	}
 
 	public boolean activateGui() throws Exception{
-		outEnvView.getEnv().addCmdPanel("btn", new String[]{actionA,actionS1,actionB}, this);
+		outEnvView.getEnv().addCmdPanel("btn", new String[]{actionA,actionNonDavantiS1_1,actionS1,actionNonDavantiS1_2,actionB}, this);
 		return true;
 	}
 	
@@ -85,8 +87,14 @@ public class Console extends AbstractConsole implements IActivity {
 			if(cmd.equals(actionA)){
 				this.emit("sonar", "p(58,59)");
 			}
+			else if(cmd.equals(actionNonDavantiS1_1)){
+				this.emit("sonar", "p(54,68)");
+			}
 			else if(cmd.equals(actionS1)){
 				this.emit("sonar", "p(50,90)");
+			}
+			else if(cmd.equals(actionNonDavantiS1_2)){
+				this.emit("sonar", "p(51,101)");
 			}
 			else if(cmd.equals(actionB)){
 				this.emit("sonar", "p(158,162)");
