@@ -1,7 +1,6 @@
 System a0
 
-Event sonar : p(Distance, Angle) 
-Event usercmd : usercmd(X)
+Event sonar : p(Distance, Angle)
 
 Dispatch sonarreached : sonarreached
 Dispatch robotstart:robotstart
@@ -23,7 +22,7 @@ QActor robot context ctxBase{
 		 * Attendo 5 minuti lo start, se non arriva termino il Robot
 		 */
 		receiveMsg time(300000);
-		onMsg robotstart:robotstart -> switchToPlan goStraight;// else endPlan "ROBOT: finish!"
+		onMsg robotstart:robotstart -> switchToPlan goStraight else endPlan "ROBOT: finish!";
 		repeatPlan
 		
 	/*		

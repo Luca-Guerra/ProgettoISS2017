@@ -1,17 +1,13 @@
 System a1
 
-Event sonar : p(Id, Distance, Angle) 
-Event usercmd : usercmd(X)
+Event sonar : p(Id, Distance, Angle)
 
 Dispatch sonarreached : sonarreached
 Dispatch robotstart:robotstart
 Dispatch robotstop : robotstop
 
-Context ctxBase ip [ host="localhost" port=8079] -g green -httpserver
+Context ctxBase ip [ host="localhost" port=8079] -g green
 EventHandler evh_sonar for sonar -print{ 
-	memo currentEvent for console
-};
-EventHandler evh_user for usercmd -print{ 
 	memo currentEvent for console
 };
 
@@ -26,24 +22,37 @@ QActor robot context ctxBase{
 		 * Attendo 10 sec lo start, se non arriva termino il Robot
 		 */
 		receiveMsg time(10000);
-		onMsg robotstart:robotstart -> switchToPlan goStraight;// else endPlan "ROBOT: finish!"
+		onMsg robotstart:robotstart -> switchToPlan goStraight else endPlan "ROBOT: finish!";
 		repeatPlan
 		
+	/*
+	 *  SCENARIO: 
+	 * 	ID          : Robot go straight on
+	 * 	DESCRIPTION : The Robot continues in a straight line to the B zone
+	 */
 	Plan goStraight resumeLastPlan
 		println("ROBOT: goStraight");
+		demo assign(state,gostraight);
 		receiveMsg time(1000);
 		onMsg sonarreached:sonarreached -> switchToPlan sonarReached;
-		onMsg robotstop : robotstop -> switchToPlan stopTheRobot;
+		onMsg robotstop   :robotstop    -> switchToPlan stopTheRobot;
 		repeatPlan
 		
-	Plan sonarReached resumeLastPlan
-		demo assign(state,sonarreached);
-		println("ROBOT: Stop, Turn Left, Start Blinking, Take Pictures, Send Photo, Stop Blinking, Turn Right, Restart")
-	
 	/*
 	 *  SCENARIO: 
 	 * 	ID          : Robot Reaches Sonar
 	 * 	DESCRIPTION : The Robot reaches the signal emitted by the Sonar
+	 */
+	Plan sonarReached resumeLastPlan
+		demo assign(state,sonarreached);
+		println("ROBOT: Stop, Turn Left, Start Blinking, Take Pictures, Send Photo, Stop Blinking, Turn Right, Restart");
+		delay time(2000) // simulo il tempo di operazione
+		
+	/*
+	 *  SCENARIO: 
+	 * 	ID          : Allarm emitted
+	 * 	DESCRIPTION : The System emits an allarm when computes a value under a specific threshold
+	 * 				  (sk + sk + 1 + ...sN)/(N - k + 1)
 	 */
 	Plan thresholdExceeded
 		demo assign(state,thresholdexceeded);
@@ -51,6 +60,7 @@ QActor robot context ctxBase{
 	
 	Plan stopTheRobot
 		println("ROBOT: Stop");
+		demo assign(state,stop);
 		switchToPlan waitConsoleStart
 }
 
@@ -66,7 +76,6 @@ QActor console context ctxBase {
 		value(nsonars, 3). // number of system's sonars
     	value(nextsonar, 1). // next sonar to reach
     	value(dmin,70). // DMIN
-    	
 	}
 	Plan init normal
 		println("CONSOLE: ready!");
@@ -74,7 +83,6 @@ QActor console context ctxBase {
 		switchToPlan senseSonar
 		
 	Plan senseSonar resumeLastPlan
-		//[ ??msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(p(ID,D,A))), SEQNUM )] actorOp memoSonarEvent(D, A) else demo inc(noevent,1,X);
 		[ ??msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] actorOp memoSonarEvent(ID,D,A) else demo inc(noevent,1,X);
 		// If the Console doesn't receive an event from a Sonar stop it self
 		[ ?? value(noevent,10)] switchToPlan stopConsole;
@@ -138,7 +146,7 @@ QActor console context ctxBase {
 QActor sensorsonar context ctxBase  {    
 	Rules{
 		/* SIMULATION DATA */
-		simulation.	
+		//simulation.	
 		p(1,58,59).p(1,54,68).p(1,51,79).p(1,50,90).p(1,51,101).
 		p(1,54,112).p(1,58,121).p(1,64,129).p(1,71,135).p(1,78,140).
 		p(1,86,144).p(1,94,148).p(1,103,151).p(1,112,153).p(1,121,156).
