@@ -27,10 +27,20 @@ public class Console extends AbstractConsole implements IActivity {
 	}
 	
 	public int memoSonarEvent(int ID, int D, int A){
-		outEnvView.addOutput("memo");
-		solveGoal("assign("+ID+","+D+")");
-		solveGoal("assign(dist,"+D+")");
-		solveGoal("assign(angle,"+A+")");
+		// prendo solo i segnali davanti ai sonar
+		if(A > 85 && A < 95){
+			outEnvView.addOutput("memo-signal-wall");
+			solveGoal("assign("+ID+","+D+")");
+			solveGoal("assign(dist"+ID+","+D+")");
+			//solveGoal("assign(angle"+ID+","+A+")");
+		}
+		// salvo le informazioni per determinare se abbiamo raggiunto l'area A o B
+		else if(ID == 1){
+			outEnvView.addOutput("memo-signal-robot");
+			solveGoal("assign(distforarea,"+D+")");
+			solveGoal("assign(angleforarea,"+A+")");
+		}
+		
 		return 1;
 	}
 	
@@ -40,12 +50,13 @@ public class Console extends AbstractConsole implements IActivity {
 		int dist; 
 		int angle;
 		try {
-			dist = getFromKB("dist");
-			angle = getFromKB("angle");
+			dist = getFromKB("distforarea");
+			angle = getFromKB("angleforarea");
 			area_a_dist = getFromKB("area_a_dist");
 			area_a_angle = getFromKB("area_a_angle");
 			return ((dist < area_a_dist) && (angle < area_a_angle)) ? 1 : 0;
 		} catch (NoSolutionException e) {
+			outEnvView.addOutput("eccezione check areaA");
 			return 0;
 		}
 	}
@@ -56,23 +67,32 @@ public class Console extends AbstractConsole implements IActivity {
 		int dist; 
 		int angle;
 		try {
-			dist = getFromKB("dist");
-			angle = getFromKB("angle");
+			dist = getFromKB("distforarea");
+			angle = getFromKB("angleforarea");
 			area_b_dist = getFromKB("area_b_dist");
 			area_b_angle = getFromKB("area_b_angle");
 			return ((dist > area_b_dist) && (angle > area_b_angle)) ? 1 : 0;
 		} catch (NoSolutionException e) {
+			outEnvView.addOutput("eccezione check areaB");
 			return 0;
 		}
 	}
 	
+	/*
+	 * se la distanza è minore di 80 
+	 * stiamo rilevando qualcosa davanti al sonar che non e' il
+	 * muro
+	 */
 	public int sonarReached(){
-		int angle;
+		int dist;
+		int nextsonar;
 		try {
-			angle = getFromKB("angle");
-			return (angle > 85 && angle < 95) ? 1 : 0;
+			// leggo le distanze e gli angoli riferiti al prossimo sonar da incontrare
+			nextsonar = getFromKB("nextsonar");
+			dist  = getFromKB("dist"+nextsonar);
+			return (dist < 80) ? 1 : 0;
 		} catch (NoSolutionException e) {
-			outEnvView.addOutput("eccezione:" + e.getMessage());
+			outEnvView.addOutput("eccezione check:" + e.getMessage());
 		}
 		return 0;
 	}
@@ -84,7 +104,6 @@ public class Console extends AbstractConsole implements IActivity {
 		int sum = 0;
 		// vado a leggere i vari valori e calcolo la soglia
 		try {
-			
 			dmin = getFromKB("dmin");
 			nextsonar = getFromKB("nextsonar");
 			nsonars = getFromKB("nsonars");
@@ -92,8 +111,7 @@ public class Console extends AbstractConsole implements IActivity {
 				sum+=getFromKB(i+"");
 			}
 			double exp_res = sum/(nsonars-nextsonar+1);
-			outEnvView.addOutput("DEBUG: calcolo soglia, dmin: " +  dmin);
-			outEnvView.addOutput("exp: " +  exp_res);
+			outEnvView.addOutput("DEBUG: exp: " +  exp_res);
 			return exp_res < dmin ? 1 : 0;
 		} catch (NoSolutionException e) {
 			return 0;
@@ -118,59 +136,89 @@ public class Console extends AbstractConsole implements IActivity {
 		try {
 			if(cmd.equals(actionA)){
 				this.emit("sonar", "p(1,58,59)");
+				this.emit("sonar", "p(1,86,90)");
 				this.emit("sonar", "p(2,103,29)");
+				this.emit("sonar", "p(2,86,90)");
 				this.emit("sonar", "p(3,158,18)");
+				this.emit("sonar", "p(3,86,90)");
 			}
 			else if(cmd.equals(actionNonDavantiS1_1)){
 				this.emit("sonar", "p(1,54,68)");
+				this.emit("sonar", "p(1,86,90)");
 				this.emit("sonar", "p(2,94,32)");
+				this.emit("sonar", "p(2,86,90)");
 				this.emit("sonar", "p(3,149,20)");
+				this.emit("sonar", "p(3,86,90)");
 			}
 			else if(cmd.equals(actionS1)){
 				this.emit("sonar", "p(1,50,90)");
 				this.emit("sonar", "p(2,78,40)");
+				this.emit("sonar", "p(2,86,90)");
 				this.emit("sonar", "p(3,121,24)");
+				this.emit("sonar", "p(3,86,90)");
 				
 			}
 			else if(cmd.equals(actionNonDavantiS1_2)){
 				this.emit("sonar", "p(1,51,101)");
+				this.emit("sonar", "p(1,86,90)");
 				this.emit("sonar", "p(2,71,45)");
+				this.emit("sonar", "p(2,86,90)");
 				this.emit("sonar", "p(3,103,29)");
+				this.emit("sonar", "p(3,86,90)");
 			}
 			else if(cmd.equals(actionNonDavantiS2_1)){
 				this.emit("sonar", "p(1,71,135)");
+				this.emit("sonar", "p(1,86,90)");
 				this.emit("sonar", "p(2,51,79)");
+				this.emit("sonar", "p(2,86,90)");
 				this.emit("sonar", "p(3,86,36)");
+				this.emit("sonar", "p(3,86,90)");
 			}
 			else if(cmd.equals(actionS2)){
 				this.emit("sonar", "p(1,78,140)");
+				this.emit("sonar", "p(1,86,90)");
 				this.emit("sonar", "p(2,50,90)");
 				this.emit("sonar", "p(3,78,40)");
+				this.emit("sonar", "p(3,86,90)");
 			}
 			else if(cmd.equals(actionNonDavantiS2_2)){
 				this.emit("sonar", "p(1,86,144)");
+				this.emit("sonar", "p(1,86,90)");
 				this.emit("sonar", "p(2,51,101)");
+				this.emit("sonar", "p(2,86,90)");
 				this.emit("sonar", "p(3,71,45)");
+				this.emit("sonar", "p(3,86,90)");
 			}
 			else if(cmd.equals(actionNonDavantiS3_1)){
 				this.emit("sonar", "p(1,121,156)");
+				this.emit("sonar", "p(1,86,90)");
 				this.emit("sonar", "p(2,71,135)");
+				this.emit("sonar", "p(2,86,90)");
 				this.emit("sonar", "p(3,51,79)");
+				this.emit("sonar", "p(3,86,90)");
 			}
 			else if(cmd.equals(actionS3)){
 				this.emit("sonar", "p(1,11,157)");
+				this.emit("sonar", "p(1,86,90)");
 				this.emit("sonar", "p(2,78,140)");
+				this.emit("sonar", "p(2,86,90)");
 				this.emit("sonar", "p(3,50,90)");
 			}
 			else if(cmd.equals(actionNonDavantiS3_2)){
 				this.emit("sonar", "p(1,139,159)");
+				this.emit("sonar", "p(1,86,90)");
 				this.emit("sonar", "p(2,86,144)");
+				this.emit("sonar", "p(2,86,90)");
 				this.emit("sonar", "p(3,51,101)");
+				this.emit("sonar", "p(3,86,90)");
 			}
 			else if(cmd.equals(actionB)){
 				this.emit("sonar", "p(1,158,162)");
+				this.emit("sonar", "p(1,86,90)");
 				this.emit("sonar", "p(2,103,151)");
+				this.emit("sonar", "p(2,86,90)");
 				this.emit("sonar", "p(3,58,121)");
+				this.emit("sonar", "p(3,86,90)");
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

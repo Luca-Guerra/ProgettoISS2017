@@ -75,7 +75,8 @@ QActor console context ctxBase {
 		value(area_b_dist, 150).
 		value(nsonars, 3). // number of system's sonars
     	value(nextsonar, 1). // next sonar to reach
-    	value(dmin,70). // DMIN
+    	value(dmin,75). // DMIN
+    	value(robotstart, 0). // il robot è fermo
 	}
 	Plan init normal
 		actorOp activateGui;
@@ -98,12 +99,19 @@ QActor console context ctxBase {
 		switchToPlan checkAreaB;
 		switchToPlan checkSonarReached;
 		switchToPlan checkThreshold
-		
+
+	/*
+	 *  SCENARIO: 
+	 * 	ID          : RobotReachAZone
+	 * 	DESCRIPTION : Robot reaches A zone and starts
+	 */		
 	Plan checkAreaA resumeLastPlan
-		actorOp inAreaA;
+		// se il robot non e' ancora partito controllo se e' in area A
+		[ !? value(robotstart,0)] actorOp inAreaA else endPlan "";
 		[ !? actorOpDone(inAreaA,1)] println("CONSOLE: robot in area A!");
 		[ !? actorOpDone(inAreaA,1)] demo assign(nextsonar, 1);
-		[ ?? actorOpDone(inAreaA,1)] forward robot -m robotstart:robotstart
+		[ !? actorOpDone(inAreaA,1)] forward robot -m robotstart:robotstart;
+		[ ?? actorOpDone(inAreaA,1)] demo assign(robotstart, 1)
 		
 	/*
 	 *  SCENARIO: 
@@ -111,9 +119,11 @@ QActor console context ctxBase {
 	 * 	DESCRIPTION : Robot reaches B zone and stops
 	 */
 	Plan checkAreaB resumeLastPlan
-		actorOp inAreaB;
+		// se il robot non sta proseguendo controllo se e' in area B
+		[ !? value(robotstart,1)] actorOp inAreaB else endPlan "";
 		[ !? actorOpDone(inAreaB,1)] println("CONSOLE: robot in area B!");
-		[ ?? actorOpDone(inAreaB,1)] forward robot -m robotstop : robotstop
+		[ !? actorOpDone(inAreaB,1)] forward robot -m robotstop:robotstop;
+		[ ?? actorOpDone(inAreaB,1)] demo assign(robotstart, 0)
 		
 	/*
 	 *  SCENARIO: 
@@ -134,9 +144,9 @@ QActor console context ctxBase {
 	 */
 	Plan checkThreshold resumeLastPlan
 		actorOp expLessThanDMIN;
-		[ !? actorOpDone(lessThanDMIN,1)] println("CONSOLE: underThreshold!");
-		[ !? actorOpDone(lessThanDMIN,1)] demo assign(state,underthreshold);
-		[ ?? actorOpDone(lessThanDMIN,1)] forward robot -m robotstop:robotstop
+		[ !? actorOpDone(expLessThanDMIN,1)] println("CONSOLE: underThreshold!");
+		[ !? actorOpDone(expLessThanDMIN,1)] demo assign(state,underthreshold);
+		[ ?? actorOpDone(expLessThanDMIN,1)] forward robot -m robotstop:robotstop
 	
 	Plan stopConsole
 		forward robot -m robotstop : robotstop;
@@ -148,20 +158,20 @@ QActor sensorsonar context ctxBase  {
 	Rules{
 		/* SIMULATION DATA */
 		//simulation.	
-		p(1,58,59).p(1,54,68).p(1,51,79).p(1,50,90).p(1,51,101).
-		p(1,54,112).p(1,58,121).p(1,64,129).p(1,71,135).p(1,78,140).
-		p(1,86,144).p(1,94,148).p(1,103,151).p(1,112,153).p(1,121,156).
-		p(1,11,157).p(1,139,159).p(1,149,160).p(1,158,162).
+		p(1,58,59).p(1,86,90).p(1,54,68).p(1,86,90).p(1,51,79).p(1,50,90).p(1,51,101).p(1,86,90).
+		p(1,54,112).p(1,86,90).p(1,58,121).p(1,86,90).p(1,64,129).p(1,86,90).p(1,71,135).p(1,86,90).p(1,78,140).
+		p(1,86,90).p(1,86,144).p(1,86,90).p(1,94,148).p(1,86,90).p(1,103,151).p(1,86,90).p(1,112,153).p(1,86,90).
+		p(1,121,156).p(1,11,157).p(1,86,90).p(1,139,159).p(1,86,90).p(1,149,160).p(1,86,90).p(1,158,162).
 		
-		p(2,103,29).p(2,94,32).p(2,86,36).p(2,78,40).p(2,71,45).
-		p(2,64,51).p(2,58,59).p(2,54,68).p(2,51,79).p(2,50,90).
-		p(2,51,101).p(2,54,112).p(2,58,121).p(2,64,129).p(2,71,135).
-		p(2,78,140).p(2,86,144).p(2,94,148).p(2,103,151).
+		p(2,103,29).p(2,86,90).p(2,94,32).p(2,86,90).p(2,86,36).p(2,86,90).p(2,78,40).p(2,86,90).p(2,71,45).
+		p(2,86,90).p(2,64,51).p(2,86,90).p(2,58,59).p(2,86,90).p(2,54,68).p(2,86,90).p(2,51,79).p(2,50,90).
+		p(2,51,101).p(2,86,90).p(2,54,112).p(2,86,90).p(2,58,121).p(2,86,90).p(2,64,129).p(2,86,90).p(2,71,135).
+		p(2,78,140).p(2,86,90).p(2,86,144).p(2,86,90).p(2,94,148).p(2,86,90).p(2,103,151).
 		
-		p(3,158,18).p(3,149,20).p(3,139,21).p(3,11,23).p(3,121,24).
-		p(3,112,27).p(3,103,29).p(3,94,32).p(3,86,36).p(3,78,40).
-		p(3,71,45).p(3,64,51).p(3,58,59).p(3,54,68).p(3,51,79).
-		p(3,50,90).p(3,51,101).p(3,54,112).p(3,58,121).	
+		p(3,158,18).p(3,86,90).p(3,149,20).p(3,86,90).p(3,139,21).p(3,86,90).p(3,11,23).p(3,86,90).p(3,121,24).
+		p(3,86,90).p(3,112,27).p(3,86,90).p(3,103,29).p(3,86,90).p(3,94,32).p(3,86,90).p(3,86,36).p(3,86,90).p(3,78,40).
+		p(3,86,90).p(3,71,45).p(3,86,90).p(3,64,51).p(3,86,90).p(3,58,59).p(3,86,90).p(3,54,68).p(3,86,90).p(3,51,79).
+		p(3,50,90).p(3,51,101).p(3,86,90).p(3,54,112).p(3,86,90).p(3,58,121).p(3,86,90).	
 		
 		/*
 		 * Area A -> p(58,59)
@@ -177,13 +187,13 @@ QActor sensorsonar context ctxBase  {
  	Plan workSimulate   resumeLastPlan
   	 	[ !? p(1, D, A) ] println(p(1, D, A)); 
 		[ ?? p(1, D, A) ] emit sonar : p(1, D, A);
-		delay time(5000);
+		delay time(2000);
 		[ !? p(2, D, A) ] println(p(2, D, A)); 
 		[ ?? p(2, D, A) ] emit sonar : p(2, D, A);
-		delay time(5000);
+		delay time(2000);
 		[ !? p(3, D, A) ] println(p(3, D, A)) else endPlan "SONARS: bye"; 
 		[ ?? p(3, D, A) ] emit sonar : p(3, D, A);
-		delay time(5000);
+		delay time(2000);
 		repeatPlan 15	
 	Plan work resumeLastPlan
 		repeatPlan
