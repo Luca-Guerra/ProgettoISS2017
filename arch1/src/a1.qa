@@ -78,6 +78,7 @@ QActor console context ctxBase {
     	value(dmin,70). // DMIN
 	}
 	Plan init normal
+		actorOp activateGui;
 		println("CONSOLE: ready!");
 		demo assign(noevent,0);
 		switchToPlan senseSonar

@@ -4,10 +4,24 @@ This code is generated only ONCE
 */
 package it.unibo.console;
 import alice.tuprolog.NoSolutionException;
+import it.unibo.is.interfaces.IActivity;
+import it.unibo.is.interfaces.IIntent;
 import it.unibo.is.interfaces.IOutputEnvView;
 import it.unibo.qactors.QActorContext;
 
-public class Console extends AbstractConsole { 
+public class Console extends AbstractConsole implements IActivity { 
+	private String actionA = "A";
+	private String actionNonDavantiS1_1 = "ND_S1_1";
+	private String actionS1 = "S1";
+	private String actionNonDavantiS1_2 = "ND_S1_2";
+	private String actionNonDavantiS2_1 = "ND_S2_1";
+	private String actionS2 = "S2";
+	private String actionNonDavantiS2_2 = "ND_S2_2";
+	private String actionNonDavantiS3_1 = "ND_S3_1";
+	private String actionS3 = "S3";
+	private String actionNonDavantiS3_2 = "ND_S3_2";
+	private String actionB = "B";
+	
 	public Console(String actorId, QActorContext myCtx, IOutputEnvView outEnvView )  throws Exception{
 		super(actorId, myCtx, outEnvView);
 	}
@@ -78,6 +92,7 @@ public class Console extends AbstractConsole {
 				sum+=getFromKB(i+"");
 			}
 			double exp_res = sum/(nsonars-nextsonar+1);
+			outEnvView.addOutput("DEBUG: calcolo soglia, dmin: " +  dmin);
 			outEnvView.addOutput("exp: " +  exp_res);
 			return exp_res < dmin ? 1 : 0;
 		} catch (NoSolutionException e) {
@@ -87,6 +102,97 @@ public class Console extends AbstractConsole {
 	
 	private int getFromKB(String variable) throws NoSolutionException{
 		return Integer.parseInt(solveGoal("value(" + variable + ",X)").getVarValue("X").toString());
+	}
+
+	public boolean activateGui() throws Exception{
+		outEnvView.getEnv().addCmdPanel("btn", new String[]{actionA,
+				actionNonDavantiS1_1,actionS1,actionNonDavantiS1_2,
+				actionNonDavantiS2_1,actionS2,actionNonDavantiS2_2,
+				actionNonDavantiS3_1,actionS3,actionNonDavantiS3_2,
+				actionB}, this);
+		return true;
+	}
+	
+	@Override
+	public void execAction(String cmd) {
+		try {
+			if(cmd.equals(actionA)){
+				this.emit("sonar", "p(1,58,59)");
+				this.emit("sonar", "p(2,103,29)");
+				this.emit("sonar", "p(3,158,18)");
+			}
+			else if(cmd.equals(actionNonDavantiS1_1)){
+				this.emit("sonar", "p(1,54,68)");
+				this.emit("sonar", "p(2,94,32)");
+				this.emit("sonar", "p(3,149,20)");
+			}
+			else if(cmd.equals(actionS1)){
+				this.emit("sonar", "p(1,50,90)");
+				this.emit("sonar", "p(2,78,40)");
+				this.emit("sonar", "p(3,121,24)");
+				
+			}
+			else if(cmd.equals(actionNonDavantiS1_2)){
+				this.emit("sonar", "p(1,51,101)");
+				this.emit("sonar", "p(2,71,45)");
+				this.emit("sonar", "p(3,103,29)");
+			}
+			else if(cmd.equals(actionNonDavantiS2_1)){
+				this.emit("sonar", "p(1,71,135)");
+				this.emit("sonar", "p(2,51,79)");
+				this.emit("sonar", "p(3,86,36)");
+			}
+			else if(cmd.equals(actionS2)){
+				this.emit("sonar", "p(1,78,140)");
+				this.emit("sonar", "p(2,50,90)");
+				this.emit("sonar", "p(3,78,40)");
+			}
+			else if(cmd.equals(actionNonDavantiS2_2)){
+				this.emit("sonar", "p(1,86,144)");
+				this.emit("sonar", "p(2,51,101)");
+				this.emit("sonar", "p(3,71,45)");
+			}
+			else if(cmd.equals(actionNonDavantiS3_1)){
+				this.emit("sonar", "p(1,121,156)");
+				this.emit("sonar", "p(2,71,135)");
+				this.emit("sonar", "p(3,51,79)");
+			}
+			else if(cmd.equals(actionS3)){
+				this.emit("sonar", "p(1,11,157)");
+				this.emit("sonar", "p(2,78,140)");
+				this.emit("sonar", "p(3,50,90)");
+			}
+			else if(cmd.equals(actionNonDavantiS3_2)){
+				this.emit("sonar", "p(1,139,159)");
+				this.emit("sonar", "p(2,86,144)");
+				this.emit("sonar", "p(3,51,101)");
+			}
+			else if(cmd.equals(actionB)){
+				this.emit("sonar", "p(1,158,162)");
+				this.emit("sonar", "p(2,103,151)");
+				this.emit("sonar", "p(3,58,121)");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} 
+	}
+
+	@Override
+	public void execAction() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void execAction(IIntent input) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public String execActionWithAnswer(String cmd) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
