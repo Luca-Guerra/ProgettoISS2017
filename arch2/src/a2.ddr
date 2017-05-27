@@ -1,0 +1,189 @@
+RobotSystem a2
+
+Event sonar : p(Id, Distance, Angle)
+
+Dispatch sonarreached : sonarreached
+Dispatch robotstart:robotstart
+Dispatch robotstop : robotstop
+
+Context ctxBase ip [ host="localhost" port=8079] -g green
+EventHandler evh_sonar for sonar -print{ 
+	memo currentEvent for console
+};
+
+QActor console context ctxBase {
+	Rules{
+		/*
+		 * CONFIGURATION
+		 */
+		value(area_a_angle, 60). // coord AreaA
+		value(area_a_dist, 60).
+		value(area_b_angle, 160). // coord AreaB
+		value(area_b_dist, 150).
+		value(nsonars, 3). // number of system's sonars
+    	value(nextsonar, 1). // next sonar to reach
+    	value(dmin,70). // DMIN
+	}
+	Plan init normal
+		println("CONSOLE: ready!");
+		demo assign(noevent,0);
+		switchToPlan senseSonar
+		
+	Plan senseSonar resumeLastPlan
+		[ ??msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] actorOp memoSonarEvent(ID,D,A) else demo inc(noevent,1,X);
+		// If the Console doesn't receive an event from a Sonar stop it self
+		[ ?? value(noevent,10)] switchToPlan stopConsole;
+		delay time(1000);
+		[ !? actorOpDone(memoSonarEvent(ID,D,A),1)] demo assign(noevent,0);
+		
+		[ ?? actorOpDone(memoSonarEvent(ID,D,A),1)] switchToPlan workflow;
+		repeatPlan
+		
+	Plan workflow resumeLastPlan
+		switchToPlan checkAreaA;
+		switchToPlan checkAreaB;
+		switchToPlan checkSonarReached;
+		switchToPlan checkThreshold
+		
+	Plan checkAreaA resumeLastPlan
+		actorOp inAreaA;
+		[ !? actorOpDone(inAreaA,1)] println("CONSOLE: robot in area A!");
+		[ !? actorOpDone(inAreaA,1)] demo assign(nextsonar, 1);
+		[ ?? actorOpDone(inAreaA,1)] forward robot -m robotstart:robotstart
+		
+	/*
+	 *  SCENARIO: 
+	 * 	ID          : RobotReachBZone
+	 * 	DESCRIPTION : Robot reaches B zone and stops
+	 */
+	Plan checkAreaB resumeLastPlan
+		actorOp inAreaB;
+		[ !? actorOpDone(inAreaB,1)] println("CONSOLE: robot in area B!");
+		[ ?? actorOpDone(inAreaB,1)] forward robot -m robotstop : robotstop
+		
+	/*
+	 *  SCENARIO: 
+	 * 	ID          : Robot Reaches Sonar
+	 * 	DESCRIPTION : The Robot reaches the signal emitted by the Sonar
+	 */
+	Plan checkSonarReached resumeLastPlan
+		actorOp sonarReached;
+		[ !? actorOpDone(sonarReached,1)] println("CONSOLE: sonarReached!");
+		[ !? actorOpDone(sonarReached,1)] demo assign(state,sonarreached);
+		[ !? actorOpDone(sonarReached,1)] demo inc(nextsonar,1,X);
+		[ ?? actorOpDone(sonarReached,1)] forward robot -m sonarreached:sonarreached
+		
+	/*
+	 *  SCENARIO: 
+	 * 	ID          : Alarm emitted
+	 * 	DESCRIPTION : The System emits an alarm when computes a value under a specific threshold
+	 */
+	Plan checkThreshold resumeLastPlan
+		actorOp expLessThanDMIN;
+		[ !? actorOpDone(lessThanDMIN,1)] println("CONSOLE: underThreshold!");
+		[ !? actorOpDone(lessThanDMIN,1)] demo assign(state,underthreshold);
+		[ ?? actorOpDone(lessThanDMIN,1)] forward robot -m robotstop:robotstop
+	
+	Plan stopConsole
+		forward robot -m robotstop : robotstop;
+		demo assign(state, finished);
+		println("CONSOLE: stop!")
+}
+
+QActor sensorsonar context ctxBase  {    
+	Rules{
+		/* SIMULATION DATA */
+		//simulation.	
+		p(1,58,59).p(1,54,68).p(1,51,79).p(1,50,90).p(1,51,101).
+		p(1,54,112).p(1,58,121).p(1,64,129).p(1,71,135).p(1,78,140).
+		p(1,86,144).p(1,94,148).p(1,103,151).p(1,112,153).p(1,121,156).
+		p(1,11,157).p(1,139,159).p(1,149,160).p(1,158,162).
+		
+		p(2,103,29).p(2,94,32).p(2,86,36).p(2,78,40).p(2,71,45).
+		p(2,64,51).p(2,58,59).p(2,54,68).p(2,51,79).p(2,50,90).
+		p(2,51,101).p(2,54,112).p(2,58,121).p(2,64,129).p(2,71,135).
+		p(2,78,140).p(2,86,144).p(2,94,148).p(2,103,151).
+		
+		p(3,158,18).p(3,149,20).p(3,139,21).p(3,11,23).p(3,121,24).
+		p(3,112,27).p(3,103,29).p(3,94,32).p(3,86,36).p(3,78,40).
+		p(3,71,45).p(3,64,51).p(3,58,59).p(3,54,68).p(3,51,79).
+		p(3,50,90).p(3,51,101).p(3,54,112).p(3,58,121).	
+		
+		/*
+		 * Area A -> p(58,59)
+		 * Davanti Sonar -> p(50,90)
+		 * Area B -> p(158,162)
+		 */
+	}	  
+ 	    
+ 	Plan init normal     
+ 		println("SONARS: Start");
+ 		[ !? simulation ] switchToPlan workSimulate else switchToPlan work;
+  		println("SONARS: finish")      
+ 	Plan workSimulate   resumeLastPlan
+  	 	[ !? p(1, D, A) ] println(p(1, D, A)); 
+		[ ?? p(1, D, A) ] emit sonar : p(1, D, A);
+		delay time(5000);
+		[ !? p(2, D, A) ] println(p(2, D, A)); 
+		[ ?? p(2, D, A) ] emit sonar : p(2, D, A);
+		delay time(5000);
+		[ !? p(3, D, A) ] println(p(3, D, A)) else endPlan "SONARS: bye"; 
+		[ ?? p(3, D, A) ] emit sonar : p(3, D, A);
+		delay time(5000);
+		repeatPlan 15	
+	Plan work resumeLastPlan
+		repeatPlan
+}  
+
+Robot mock QActor robot context ctxBase {
+	Plan init normal
+		println("ROBOT: Ready" );
+		switchToPlan waitConsoleStart
+	
+	Plan waitConsoleStart
+		println("ROBOT: I'm waiting start msg" );
+		/*
+		 * Attendo 10 sec lo start, se non arriva termino il Robot
+		 */
+		receiveMsg time(10000);
+		onMsg robotstart:robotstart -> switchToPlan goStraight else endPlan "ROBOT: finish!";
+		repeatPlan
+		
+	/*
+	 *  SCENARIO: 
+	 * 	ID          : Robot go straight on
+	 * 	DESCRIPTION : The Robot continues in a straight line to the B zone
+	 */
+	Plan goStraight resumeLastPlan
+		println("ROBOT: goStraight");
+		demo assign(state,gostraight);
+		receiveMsg time(1000);
+		onMsg sonarreached:sonarreached -> switchToPlan sonarReached;
+		onMsg robotstop   :robotstop    -> switchToPlan stopTheRobot;
+		repeatPlan
+		
+	/*
+	 *  SCENARIO: 
+	 * 	ID          : Robot Reaches Sonar
+	 * 	DESCRIPTION : The Robot reaches the signal emitted by the Sonar
+	 */
+	Plan sonarReached resumeLastPlan
+		demo assign(state,sonarreached);
+		println("ROBOT: Stop, Turn Left, Start Blinking, Take Pictures, Send Photo, Stop Blinking, Turn Right, Restart");
+		delay time(2000) // simulo il tempo di operazione
+		
+	/*
+	 *  SCENARIO: 
+	 * 	ID          : Allarm emitted
+	 * 	DESCRIPTION : The System emits an allarm when computes a value under a specific threshold
+	 * 				  (sk + sk + 1 + ...sN)/(N - k + 1)
+	 */
+	Plan thresholdExceeded
+		demo assign(state,thresholdexceeded);
+		switchToPlan stopTheRobot
+	
+	Plan stopTheRobot
+		println("ROBOT: Stop");
+		demo assign(state,stop);
+		switchToPlan waitConsoleStart
+}
