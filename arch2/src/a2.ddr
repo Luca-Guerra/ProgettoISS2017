@@ -1,13 +1,24 @@
 RobotSystem a2
 
 Event sonar : p(Id, Distance, Angle)
+Event obstacle : obstacle(Distance)
+Event    usercmd      	   : usercmd(X) 
 
 Dispatch sonarreached : sonarreached
 Dispatch robotstart:robotstart
 Dispatch robotstop : robotstop
+Dispatch userstop : userstop
 
-Context ctxBase ip [ host="localhost" port=8079] -g green
+Context ctxBase ip [ host="localhost" port=8079] -g green -httpserver
 EventHandler evh_sonar for sonar -print{ 
+	memo currentEvent for console
+};
+
+EventHandler evh_robotsonar for obstacle -print{ 
+	memo currentEvent for robot
+};
+
+EventHandler evh_stopuser for usercmd -print{ 
 	memo currentEvent for console
 };
 
@@ -25,11 +36,13 @@ QActor console context ctxBase {
     	value(dmin,70). // DMIN
 	}
 	Plan init normal
+		actorOp activateGui;
 		println("CONSOLE: ready!");
 		demo assign(noevent,0);
 		switchToPlan senseSonar
 		
 	Plan senseSonar resumeLastPlan
+		switchToPlan checkStopFromUser;
 		[ ??msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] actorOp memoSonarEvent(ID,D,A) else demo inc(noevent,1,X);
 		// If the Console doesn't receive an event from a Sonar stop it self
 		[ ?? value(noevent,10)] switchToPlan stopConsole;
@@ -88,6 +101,12 @@ QActor console context ctxBase {
 		forward robot -m robotstop : robotstop;
 		demo assign(state, finished);
 		println("CONSOLE: stop!")
+		
+	Plan checkStopFromUser resumeLastPlan
+		[??msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(X), SEQNUM )] actorOp stopUserReceived(X);
+		[ !? actorOpDone(OP,1)] println("CONSOLE: user stop web!!");
+		[ !? actorOpDone(OP,1)] demo assign(state,usercmd);
+		[ ?? actorOpDone(OP,1)] forward robot -m userstop:userstop
 }
 
 QActor sensorsonar context ctxBase  {    
@@ -157,9 +176,14 @@ Robot mock QActor robot context ctxBase {
 	Plan goStraight resumeLastPlan
 		println("ROBOT: goStraight");
 		demo assign(state,gostraight);
+		
+		[ !?msg( MSGID, MSGTYPE, SENDER, RECEIVER, obstacle(D), SEQNUM )] println("ROBOT: obstacle reached!");
+		[ ??msg( MSGID, MSGTYPE, SENDER, RECEIVER, obstacle(D), SEQNUM )] switchToPlan stopTheRobot;
+		
 		receiveMsg time(1000);
 		onMsg sonarreached:sonarreached -> switchToPlan sonarReached;
 		onMsg robotstop   :robotstop    -> switchToPlan stopTheRobot;
+		onMsg userstop:userstop -> switchToPlan stopTheRobot;
 		repeatPlan
 		
 	/*
