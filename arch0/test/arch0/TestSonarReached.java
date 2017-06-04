@@ -6,13 +6,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import alice.tuprolog.SolveInfo;
 import it.unibo.ctxBase.MainCtxBase;
 import it.unibo.qactors.QActorContext;
 import it.unibo.qactors.QActorUtils;
 import it.unibo.qactors.akka.QActor;
-
-import org.junit.Test;
 
 public class TestSonarReached {
 
@@ -47,33 +44,28 @@ public class TestSonarReached {
 		 * 2) controllo accensione e gostraight del Robot
 		 * 3) segnale sonar che indica il Robot davanti al sonar
 		 * 4) controllo il Robot faccia l'operazione
-		 * 5) controllo il Roboto continui dritto (gostraight)
-		 * 6) segnale area B raggiunta
-		 * 7) controllo il Robot sia fermo (stop)
+		 * 5) controllo il Roboto sia fermo(stop) per area B raggiunta
 		 * */
 		try {
 			assertTrue("execTest console", console != null );
 			assertTrue("execTest sonar", sonar != null );
 			assertTrue("execTest robot", robot != null);
 			Thread.sleep(1000);
-			// area A event
-			sonar.emit("sonar", "p(58,59)");
+			// area A
+			console.solveGoal("assign(area_a,1)");
 			Thread.sleep(2000);
 			// robot gostraight
 			assertTrue("execTest", robot.solveGoal("value(state,X)").getVarValue("X").toString().equals("gostraight"));
 			Thread.sleep(1000);
 			// sonarreached event
 			sonar.emit("sonar", "p(50,90)");
-			Thread.sleep(3000);
+			Thread.sleep(1000);
+			// controllo se il robot ha rilevato il sonarreached
 			assertTrue("execTest", robot.solveGoal("value(state,X)").getVarValue("X").toString().equals("sonarreached"));
 			Thread.sleep(4000); // attendo il termine dell'operazione
-			// robot gostraight
-			assertTrue("execTest", robot.solveGoal("value(state,X)").getVarValue("X").toString().equals("gostraight"));
-			Thread.sleep(1000);
-			// area B event
-			sonar.emit("sonar", "p(158,162)");
-			Thread.sleep(2000);
+			// il robot si deve essere fermato dato che c'è un solo sonar
 			assertTrue("execTest", robot.solveGoal("value(state,X)").getVarValue("X").toString().equals("stop"));
+			Thread.sleep(1000);
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 			fail("execTest " + e.getMessage());

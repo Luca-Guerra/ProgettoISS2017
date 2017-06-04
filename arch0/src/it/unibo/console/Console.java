@@ -4,6 +4,7 @@ This code is generated only ONCE
 */
 package it.unibo.console;
 import alice.tuprolog.NoSolutionException;
+import alice.tuprolog.SolveInfo;
 import it.unibo.is.interfaces.IActivity;
 import it.unibo.is.interfaces.IIntent;
 import it.unibo.is.interfaces.IOutputEnvView;
@@ -14,7 +15,6 @@ public class Console extends AbstractConsole implements IActivity {
 	private String actionNonDavantiS1_1 = "ND_S1_1";
 	private String actionS1 = "S1";
 	private String actionNonDavantiS1_2 = "ND_S1_2";
-	private String actionB = "B";
 	
 	public Console(String actorId, QActorContext myCtx, IOutputEnvView outEnvView )  throws Exception{
 		super(actorId, myCtx, outEnvView);
@@ -27,17 +27,18 @@ public class Console extends AbstractConsole implements IActivity {
 		return 1;
 	}
 	
-	public int inAreaA(){
-		int area_a_dist;
-		int area_a_angle;
-		int dist; 
+	/*
+	 * se l'angolo è circa 90 gradi e la distanza è minore di 80 
+	 * stiamo rilevando qualcosa davandi al sonar che non sia il
+	 * muro
+	 */
+	public int sonarReached(){
 		int angle;
+		int dist;
 		try {
-			dist = getFromKB("dist");
 			angle = getFromKB("angle");
-			area_a_dist = getFromKB("area_a_dist");
-			area_a_angle = getFromKB("area_a_angle");
-			return ((dist < area_a_dist) && (angle < area_a_angle)) ? 1 : 0;
+			dist  = getFromKB("dist");
+			return (angle > 85 && angle < 95 && dist < 80) ? 1 : 0;
 		} catch (NoSolutionException e) {
 			outEnvView.addOutput("eccezione:" + e.getMessage());
 		}
@@ -45,29 +46,12 @@ public class Console extends AbstractConsole implements IActivity {
 	}
 	
 	public int inAreaB(){
-		int area_b_dist;
-		int area_b_angle;
-		int dist; 
-		int angle;
 		try {
-			dist = getFromKB("dist");
-			angle = getFromKB("angle");
-			area_b_dist = getFromKB("area_b_dist");
-			area_b_angle = getFromKB("area_b_angle");
-			return ((dist > area_b_dist) && (angle > area_b_angle)) ? 1 : 0;
+			// controllo se abbiamo raggiunto l'ultimo sonar
+			if(getFromKB("nsonars") == getFromKB("sonarreached")) 
+				return 1;
 		} catch (NoSolutionException e) {
-			outEnvView.addOutput("eccezione:" + e.getMessage());
-		}
-		return -1;
-	}
-	
-	public int sonarReached(){
-		int angle;
-		try {
-			angle = getFromKB("angle");
-			return (angle > 85 && angle < 95) ? 1 : 0;
-		} catch (NoSolutionException e) {
-			outEnvView.addOutput("eccezione:" + e.getMessage());
+			e.printStackTrace();
 		}
 		return 0;
 	}
@@ -77,7 +61,7 @@ public class Console extends AbstractConsole implements IActivity {
 	}
 
 	public boolean activateGui() throws Exception{
-		outEnvView.getEnv().addCmdPanel("btn", new String[]{actionA,actionNonDavantiS1_1,actionS1,actionNonDavantiS1_2,actionB}, this);
+		outEnvView.getEnv().addCmdPanel("btn", new String[]{actionA,actionNonDavantiS1_1,actionS1,actionNonDavantiS1_2}, this);
 		return true;
 	}
 	
@@ -85,22 +69,20 @@ public class Console extends AbstractConsole implements IActivity {
 	public void execAction(String cmd) {
 		try {
 			if(cmd.equals(actionA)){
-				this.emit("sonar", "p(58,59)");
+				// settare una variabile nella KB della console
+				solveGoal("assign(area_a,1)");
 			}
 			else if(cmd.equals(actionNonDavantiS1_1)){
-				this.emit("sonar", "p(54,68)");
+				this.emit("sonar", "p(90,85)");
 			}
 			else if(cmd.equals(actionS1)){
 				this.emit("sonar", "p(50,90)");
 			}
 			else if(cmd.equals(actionNonDavantiS1_2)){
-				this.emit("sonar", "p(51,101)");
-			}
-			else if(cmd.equals(actionB)){
-				this.emit("sonar", "p(158,162)");
+				this.emit("sonar", "p(90,95)");
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			outEnvView.addOutput(e.getMessage());
 		} 
 	}
 
