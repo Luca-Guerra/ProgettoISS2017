@@ -63,6 +63,8 @@ QActor console context ctxBase {
 		value(nsonars, 1).
 	}
 	Plan init normal
+		// mi connetto al server MQTT per la comunicazione con il Radar
+		actorOp connectToSend("guersant", "tcp://m2m.eclipse.org:1883", "unibo/mqtt/radar");
 		actorOp activateGui;
 		println("CONSOLE: ready!");
 		switchToPlan checkSystemStart
@@ -93,6 +95,7 @@ QActor console context ctxBase {
 		repeatPlan
 		
 	Plan workflow resumeLastPlan	
+		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(D,A), SEQNUM )] actorOp sendMsgMqtt("unibo/mqtt/radar","polar","guersant", p(D, 90));
 		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(D,A), SEQNUM )] actorOp memoSonarEvent(D, A);
 		[ ?? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(D,A), SEQNUM )] switchToPlan checkSonarReached
 	
@@ -142,12 +145,12 @@ QActor sensorsonar context ctxBase  {
 	}	  
  	Plan init normal     
  		println("SONARS: Start");
- 		//[ !? simulation ] actorOp connectToSend("anata", "tcp://m2m.eclipse.org:1883", "unibo/mqtt/radar") else endPlan "fail conn MQTT";
+ 		[ !? simulation ] actorOp connectToSend("guersant", "tcp://m2m.eclipse.org:1883", "unibo/mqtt/radar");
  		[ !? simulation ] switchToPlan workSimulate else switchToPlan work;
   		println("SONARS: finish")      
  	Plan workSimulate   resumeLastPlan
   	 	[ !? p(D, A) ] println(p(D, A)); 
-  	 	//[ !? p(D, A) ] actorOp sendMsgMqtt("unibo/mqtt/radar","polar","anata", p(D, A)) else endPlan "fail send MQTT";
+  	 	[ !? p(D, A) ] actorOp sendMsgMqtt("unibo/mqtt/radar","polar","guersant", p(D, A)) else endPlan "fail send MQTT";
 		[ ?? p(D, A) ] emit sonar : p(D, A);
 		delay time(5000);
 		repeatPlan 15
