@@ -19,8 +19,6 @@ public class Console extends AbstractConsole implements IActivity {
 	private String actionNonDavantiS2_2 = "ND_S2_2";
 	private String actionNonDavantiS3_1 = "ND_S3_1";
 	private String actionS3 = "S3";
-	private String actionNonDavantiS3_2 = "ND_S3_2";
-	private String actionB = "B";
 	
 	public Console(String actorId, QActorContext myCtx, IOutputEnvView outEnvView )  throws Exception{
 		super(actorId, myCtx, outEnvView);
@@ -29,53 +27,33 @@ public class Console extends AbstractConsole implements IActivity {
 	public int memoSonarEvent(int ID, int D, int A){
 		// prendo solo i segnali davanti ai sonar
 		if(A > 85 && A < 95){
-			outEnvView.addOutput("memo-signal-wall");
 			solveGoal("assign("+ID+","+D+")");
-			solveGoal("assign(dist"+ID+","+D+")");
-			//solveGoal("assign(angle"+ID+","+A+")");
+			outEnvView.addOutput("assign("+ID+","+D+")");
+		}else{
+			outEnvView.addOutput("valore con angolo errato!");
 		}
-		// salvo le informazioni per determinare se abbiamo raggiunto l'area A o B
-		else if(ID == 1){
-			outEnvView.addOutput("memo-signal-robot");
-			solveGoal("assign(distforarea,"+D+")");
-			solveGoal("assign(angleforarea,"+A+")");
-		}
-		
 		return 1;
 	}
-	
-	public int inAreaA(){
-		int area_a_dist;
-		int area_a_angle;
-		int dist; 
-		int angle;
+		
+	public int inAreaB(){
 		try {
-			dist = getFromKB("distforarea");
-			angle = getFromKB("angleforarea");
-			area_a_dist = getFromKB("area_a_dist");
-			area_a_angle = getFromKB("area_a_angle");
-			return ((dist < area_a_dist) && (angle < area_a_angle)) ? 1 : 0;
+			// controllo se abbiamo raggiunto l'ultimo sonar
+			if(getFromKB("nsonars") == getFromKB("sonarreached")) 
+				return 1;
 		} catch (NoSolutionException e) {
-			outEnvView.addOutput("eccezione check areaA");
-			return 0;
+			e.printStackTrace();
 		}
+		return 0;
 	}
 	
-	public int inAreaB(){
-		int area_b_dist;
-		int area_b_angle;
-		int dist; 
-		int angle;
+	public int sendToRadar(int ID, int D){
+		int angle = ID*90;
 		try {
-			dist = getFromKB("distforarea");
-			angle = getFromKB("angleforarea");
-			area_b_dist = getFromKB("area_b_dist");
-			area_b_angle = getFromKB("area_b_angle");
-			return ((dist > area_b_dist) && (angle > area_b_angle)) ? 1 : 0;
-		} catch (NoSolutionException e) {
-			outEnvView.addOutput("eccezione check areaB");
-			return 0;
+			sendMsgMqtt("unibo/mqtt/radar","polar","guersant", "p("+D+", "+angle+")");
+		} catch (Exception e) {
+			outEnvView.addOutput("rotto!");
 		}
+		return 1;
 	}
 	
 	/*
@@ -85,32 +63,32 @@ public class Console extends AbstractConsole implements IActivity {
 	 */
 	public int sonarReached(){
 		int dist;
-		int nextsonar;
+		int sonarreached;
 		try {
 			// leggo le distanze e gli angoli riferiti al prossimo sonar da incontrare
-			nextsonar = getFromKB("nextsonar");
-			dist  = getFromKB("dist"+nextsonar);
+			sonarreached = getFromKB("sonarreached");
+			sonarreached += 1;
+			dist  = getFromKB(""+sonarreached);
 			return (dist < 80) ? 1 : 0;
 		} catch (NoSolutionException e) {
-			outEnvView.addOutput("eccezione check:" + e.getMessage());
+			return 0;
 		}
-		return 0;
 	}
 	
 	public int expLessThanDMIN(){
 		int dmin;
-		int nextsonar;
+		int sonarreached;
 		int nsonars;
 		int sum = 0;
 		// vado a leggere i vari valori e calcolo la soglia
 		try {
 			dmin = getFromKB("dmin");
-			nextsonar = getFromKB("nextsonar");
+			sonarreached = getFromKB("sonarreached");
 			nsonars = getFromKB("nsonars");
-			for(int i=nextsonar;i<=nsonars;i++){
+			for(int i=sonarreached+2;i<=nsonars;i++){
 				sum+=getFromKB(i+"");
 			}
-			double exp_res = sum/(nsonars-nextsonar+1);
+			double exp_res = sum/(nsonars-(sonarreached+1));
 			outEnvView.addOutput("DEBUG: exp: " +  exp_res);
 			return exp_res < dmin ? 1 : 0;
 		} catch (NoSolutionException e) {
@@ -126,8 +104,7 @@ public class Console extends AbstractConsole implements IActivity {
 		outEnvView.getEnv().addCmdPanel("btn", new String[]{actionA,
 				actionNonDavantiS1_1,actionS1,actionNonDavantiS1_2,
 				actionNonDavantiS2_1,actionS2,actionNonDavantiS2_2,
-				actionNonDavantiS3_1,actionS3,actionNonDavantiS3_2,
-				actionB}, this);
+				actionNonDavantiS3_1,actionS3}, this);
 		return true;
 	}
 	
@@ -135,90 +112,61 @@ public class Console extends AbstractConsole implements IActivity {
 	public void execAction(String cmd) {
 		try {
 			if(cmd.equals(actionA)){
-				this.emit("sonar", "p(1,58,59)");
-				this.emit("sonar", "p(1,86,90)");
-				this.emit("sonar", "p(2,103,29)");
-				this.emit("sonar", "p(2,86,90)");
-				this.emit("sonar", "p(3,158,18)");
-				this.emit("sonar", "p(3,86,90)");
+				// settare una variabile nella KB della console
+				solveGoal("assign(area_a,1)");
 			}
 			else if(cmd.equals(actionNonDavantiS1_1)){
-				this.emit("sonar", "p(1,54,68)");
 				this.emit("sonar", "p(1,86,90)");
-				this.emit("sonar", "p(2,94,32)");
-				this.emit("sonar", "p(2,86,90)");
-				this.emit("sonar", "p(3,149,20)");
-				this.emit("sonar", "p(3,86,90)");
+				this.emit("sonar", "p(2,85,90)");
+				this.emit("sonar", "p(3,92,90)");
 			}
 			else if(cmd.equals(actionS1)){
 				this.emit("sonar", "p(1,50,90)");
-				this.emit("sonar", "p(2,78,40)");
-				this.emit("sonar", "p(2,86,90)");
-				this.emit("sonar", "p(3,121,24)");
+				this.emit("sonar", "p(2,85,90)");
 				this.emit("sonar", "p(3,86,90)");
 				
 			}
 			else if(cmd.equals(actionNonDavantiS1_2)){
-				this.emit("sonar", "p(1,51,101)");
 				this.emit("sonar", "p(1,86,90)");
-				this.emit("sonar", "p(2,71,45)");
-				this.emit("sonar", "p(2,86,90)");
-				this.emit("sonar", "p(3,103,29)");
-				this.emit("sonar", "p(3,86,90)");
+				Thread.sleep(1000);
+				this.emit("sonar", "p(2,85,90)");
+				Thread.sleep(1000);
+				this.emit("sonar", "p(3,92,90)");
 			}
 			else if(cmd.equals(actionNonDavantiS2_1)){
-				this.emit("sonar", "p(1,71,135)");
-				this.emit("sonar", "p(1,86,90)");
-				this.emit("sonar", "p(2,51,79)");
+				this.emit("sonar", "p(1,86,89)");
+				Thread.sleep(1000);
 				this.emit("sonar", "p(2,86,90)");
-				this.emit("sonar", "p(3,86,36)");
-				this.emit("sonar", "p(3,86,90)");
+				Thread.sleep(1000);
+				this.emit("sonar", "p(3,86,86)");
 			}
 			else if(cmd.equals(actionS2)){
-				this.emit("sonar", "p(1,78,140)");
 				this.emit("sonar", "p(1,86,90)");
+				Thread.sleep(1000);
 				this.emit("sonar", "p(2,50,90)");
-				this.emit("sonar", "p(3,78,40)");
+				Thread.sleep(1000);
 				this.emit("sonar", "p(3,86,90)");
 			}
 			else if(cmd.equals(actionNonDavantiS2_2)){
-				this.emit("sonar", "p(1,86,144)");
 				this.emit("sonar", "p(1,86,90)");
-				this.emit("sonar", "p(2,51,101)");
+				Thread.sleep(1000);
 				this.emit("sonar", "p(2,86,90)");
-				this.emit("sonar", "p(3,71,45)");
+				Thread.sleep(1000);
 				this.emit("sonar", "p(3,86,90)");
 			}
 			else if(cmd.equals(actionNonDavantiS3_1)){
-				this.emit("sonar", "p(1,121,156)");
 				this.emit("sonar", "p(1,86,90)");
-				this.emit("sonar", "p(2,71,135)");
+				Thread.sleep(1000);
 				this.emit("sonar", "p(2,86,90)");
-				this.emit("sonar", "p(3,51,79)");
+				Thread.sleep(1000);
 				this.emit("sonar", "p(3,86,90)");
 			}
 			else if(cmd.equals(actionS3)){
-				this.emit("sonar", "p(1,11,157)");
 				this.emit("sonar", "p(1,86,90)");
-				this.emit("sonar", "p(2,78,140)");
-				this.emit("sonar", "p(2,86,90)");
+				Thread.sleep(1000);
+				this.emit("sonar", "p(2,87,90)");
+				Thread.sleep(1000);
 				this.emit("sonar", "p(3,50,90)");
-			}
-			else if(cmd.equals(actionNonDavantiS3_2)){
-				this.emit("sonar", "p(1,139,159)");
-				this.emit("sonar", "p(1,86,90)");
-				this.emit("sonar", "p(2,86,144)");
-				this.emit("sonar", "p(2,86,90)");
-				this.emit("sonar", "p(3,51,101)");
-				this.emit("sonar", "p(3,86,90)");
-			}
-			else if(cmd.equals(actionB)){
-				this.emit("sonar", "p(1,158,162)");
-				this.emit("sonar", "p(1,86,90)");
-				this.emit("sonar", "p(2,103,151)");
-				this.emit("sonar", "p(2,86,90)");
-				this.emit("sonar", "p(3,58,121)");
-				this.emit("sonar", "p(3,86,90)");
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
