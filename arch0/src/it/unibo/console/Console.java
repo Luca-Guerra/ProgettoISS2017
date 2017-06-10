@@ -14,16 +14,17 @@ public class Console extends AbstractConsole implements IActivity {
 	private String actionA = "A";
 	private String actionNonDavantiS1_1 = "ND_S1_1";
 	private String actionS1 = "S1";
-	private String actionNonDavantiS1_2 = "ND_S1_2";
 	
 	public Console(String actorId, QActorContext myCtx, IOutputEnvView outEnvView )  throws Exception{
 		super(actorId, myCtx, outEnvView);
 	}
 	
 	public int memoSonarEvent(int D, int A){
-		outEnvView.addOutput("memo");
-		solveGoal("assign(dist,"+D+")");
-		solveGoal("assign(angle,"+A+")");
+		if(A > 85 && A < 95){
+			solveGoal("assign(dist,"+D+")");
+		}else{
+			outEnvView.addOutput("valore con angolo errato!");
+		}
 		return 1;
 	}
 	
@@ -33,12 +34,10 @@ public class Console extends AbstractConsole implements IActivity {
 	 * muro
 	 */
 	public int sonarReached(){
-		int angle;
 		int dist;
 		try {
-			angle = getFromKB("angle");
 			dist  = getFromKB("dist");
-			return (angle > 85 && angle < 95 && dist < 80) ? 1 : 0;
+			return (dist < 80) ? 1 : 0;
 		} catch (NoSolutionException e) {
 			outEnvView.addOutput("eccezione:" + e.getMessage());
 		}
@@ -61,7 +60,7 @@ public class Console extends AbstractConsole implements IActivity {
 	}
 
 	public boolean activateGui() throws Exception{
-		outEnvView.getEnv().addCmdPanel("btn", new String[]{actionA,actionNonDavantiS1_1,actionS1,actionNonDavantiS1_2}, this);
+		outEnvView.getEnv().addCmdPanel("btn", new String[]{actionA,actionNonDavantiS1_1,actionS1}, this);
 		return true;
 	}
 	
@@ -73,13 +72,10 @@ public class Console extends AbstractConsole implements IActivity {
 				solveGoal("assign(area_a,1)");
 			}
 			else if(cmd.equals(actionNonDavantiS1_1)){
-				this.emit("sonar", "p(90,85)");
+				this.emit("sonar", "p(90,86)");
 			}
 			else if(cmd.equals(actionS1)){
 				this.emit("sonar", "p(50,90)");
-			}
-			else if(cmd.equals(actionNonDavantiS1_2)){
-				this.emit("sonar", "p(90,95)");
 			}
 		} catch (Exception e) {
 			outEnvView.addOutput(e.getMessage());

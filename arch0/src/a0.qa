@@ -81,17 +81,21 @@ QActor console context ctxBase {
 	
 	Plan initSystem resumeLastPlan
 		demo assign(sonarreached, 0);
+		[ ?? value(dist,V)] println("clean");
 		// se il robot sta gia' andando avanti lo lascio andare
 		[ !? value(robotmove, 0)] forward robot -m robotstart:robotstart;
 		[ !? value(robotmove, 0)] demo assign(robotmove, 1);
 		switchToPlan senseSonar
 		
 	Plan senseSonar resumeLastPlan
-		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(D,A), SEQNUM )] actorOp memoSonarEvent(D, A);
-		[ ?? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(D,A), SEQNUM )] switchToPlan checkSonarReached;
+		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(D,A), SEQNUM )] switchToPlan workflow;
 		switchToPlan checkRestartSystem;
 		repeatPlan
 		
+	Plan workflow resumeLastPlan	
+		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(D,A), SEQNUM )] actorOp memoSonarEvent(D, A);
+		[ ?? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(D,A), SEQNUM )] switchToPlan checkSonarReached
+	
 	/*
 	 *  SCENARIO: 
 	 * 	ID          : Robot Reaches Sonar
@@ -143,7 +147,7 @@ QActor sensorsonar context ctxBase  {
   		println("SONARS: finish")      
  	Plan workSimulate   resumeLastPlan
   	 	[ !? p(D, A) ] println(p(D, A)); 
-  	 	[ !? p(D, A) ] actorOp sendMsgMqtt("unibo/mqtt/radar","polar","anata", p(D, A)) else endPlan "fail send MQTT";
+  	 	//[ !? p(D, A) ] actorOp sendMsgMqtt("unibo/mqtt/radar","polar","anata", p(D, A)) else endPlan "fail send MQTT";
 		[ ?? p(D, A) ] emit sonar : p(D, A);
 		delay time(5000);
 		repeatPlan 15
