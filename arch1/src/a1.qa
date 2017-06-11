@@ -51,7 +51,7 @@ QActor robot context ctxBase{
 	/*
 	 *  SCENARIO: 
 	 * 	ID          : Allarm emitted
-	 * 	DESCRIPTION : The System emits an allarm when computes a value under a specific threshold
+	 * 	DESCRIPTION : The System emits an allarm when computes a value under a specific threshold
 	 * 				  (sk + sk + 1 + ...sN)/(N - k + 1)
 	 */
 	Plan thresholdExceeded
@@ -164,8 +164,6 @@ QActor console context ctxBase {
 		forward robot -m robotstop : robotstop;
 		// update the Robot's state in its KB
 		demo assign(robotmove, 0);
-		// for UnitTest
-		demo assign(state, finished);
 		println("CONSOLE: stop!");
 		switchToPlan checkSystemStart
 
