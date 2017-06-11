@@ -6,7 +6,11 @@ Dispatch sonarreached : sonarreached
 Dispatch robotstart   : robotstart
 Dispatch robotstop    : robotstop
 
+// ------------------------------------------------------------------
+//			CONTEXTS
+// ------------------------------------------------------------------
 Context ctxBase ip [ host="localhost" port=8079] -g green
+
 EventHandler evh_sonar for sonar -print{ 
 	memo currentEvent for console
 };
@@ -19,7 +23,7 @@ QActor robot context ctxBase{
 	Plan waitConsoleStart
 		println("ROBOT: I'm waiting start msg" );
 		/*
-		 * Attendo 5 minuti lo start, se non arriva termino il Robot
+		 * Wait for 5 minute the start, after this lapse of time the Robot shutdown
 		 */
 		receiveMsg time(300000);
 		onMsg robotstart:robotstart -> switchToPlan goStraight else endPlan "ROBOT: finish!";
@@ -63,39 +67,44 @@ QActor console context ctxBase {
 		value(nsonars, 1).
 	}
 	Plan init normal
-		// mi connetto al server MQTT per la comunicazione con il Radar
+		// connection to MQTT server to show the sensors distance
 		actorOp connectToSend("guersant", "tcp://m2m.eclipse.org:1883", "unibo/mqtt/radar");
 		actorOp activateGui;
 		println("CONSOLE: ready!");
 		switchToPlan checkSystemStart
 		
-	// gestisco lo start	
 	Plan checkSystemStart
-		// se il robot è in area A inizializzo il sistema
+		// if Robot is in area A init the System
 		[ ?? value(area_a, 1) ] switchToPlan initSystem;
 		delay time(1000);
 		repeatPlan
 	
-	// gestisco il restart del sistema
+	/*
+	 *  SCENARIO: 
+	 * 	ID          : Restart the system
+	 * 	DESCRIPTION : The Robot reaches the signal emitted by the Sonar
+	 */
 	Plan checkRestartSystem resumeLastPlan
-		// se il robot è in area A reinizializzo il sistema
+		// if the Robot is in area A restart the System
 		[ ?? value(area_a, 1) ] switchToPlan initSystem
 	
 	Plan initSystem resumeLastPlan
 		demo assign(sonarreached, 0);
 		[ ?? value(dist,V)] println("clean");
-		// se il robot sta gia' andando avanti lo lascio andare
+		// if robot is stopped restart
 		[ !? value(robotmove, 0)] forward robot -m robotstart:robotstart;
 		[ !? value(robotmove, 0)] demo assign(robotmove, 1);
 		switchToPlan senseSonar
 		
 	Plan senseSonar resumeLastPlan
 		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(D,A), SEQNUM )] switchToPlan workflow;
-		switchToPlan checkRestartSystem;
+		switchToPlan checkRestartSystem; // control the system restart
 		repeatPlan
 		
 	Plan workflow resumeLastPlan	
+		// show distance in Radar
 		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(D,A), SEQNUM )] actorOp sendMsgMqtt("unibo/mqtt/radar","polar","guersant", p(D, 90));
+		// memorize the distance
 		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(D,A), SEQNUM )] actorOp memoSonarEvent(D, A);
 		[ ?? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(D,A), SEQNUM )] switchToPlan checkSonarReached
 	
@@ -107,22 +116,28 @@ QActor console context ctxBase {
 	Plan checkSonarReached resumeLastPlan
 		actorOp sonarReached;
 		[ !? actorOpDone(sonarReached,1)] println("CONSOLE: sonarReached!");
-		// per UnitTest
+		// for UnitTest
 		[ !? actorOpDone(sonarReached,1)] demo assign(state,sonarreached);
-		// salvo il sonar raggiunto
+		// memorize the last sonar reached
 		[ !? actorOpDone(sonarReached,1)] demo inc(sonarreached,1,X);
 		[ !? actorOpDone(sonarReached,1)] forward robot -m sonarreached:sonarreached;
 		[ ?? actorOpDone(sonarReached,1)] switchToPlan checkAreaB
 		
+		
+	/*
+	 *  SCENARIO: 
+	 * 	ID          : RobotReachBZone
+	 * 	DESCRIPTION : Robot reaches B zone and stops
+	 */
 	Plan checkAreaB resumeLastPlan
 		actorOp inAreaB;
 		[ ?? actorOpDone(inAreaB, 1)] switchToPlan stopConsole
 		
 	Plan stopConsole
 		forward robot -m robotstop : robotstop;
-		// aggiorno lo stato del robot nella KB
+		// update the Robot's state in its KB
 		demo assign(robotmove, 0);
-		// per UnitTest
+		// for UnitTest
 		demo assign(state, finished);
 		println("CONSOLE: stop!");
 		switchToPlan checkSystemStart
@@ -136,21 +151,13 @@ QActor sensorsonar context ctxBase  {
 		p(54,112).p(58,121).p(64,129).p(71,135).p(78,140).
 		p(86,144).p(94,148).p(103,151).p(112,153).p(121,156).
 		p(130,157).p(139,159).p(149,160).p(158,162).
-		
-		/*
-		 * Area A -> p(58,59)
-		 * Davanti Sonar -> p(50,90)
-		 * Area B -> p(158,162)
-		 */
 	}	  
  	Plan init normal     
  		println("SONARS: Start");
- 		[ !? simulation ] actorOp connectToSend("guersant", "tcp://m2m.eclipse.org:1883", "unibo/mqtt/radar");
  		[ !? simulation ] switchToPlan workSimulate else switchToPlan work;
   		println("SONARS: finish")      
  	Plan workSimulate   resumeLastPlan
   	 	[ !? p(D, A) ] println(p(D, A)); 
-  	 	[ !? p(D, A) ] actorOp sendMsgMqtt("unibo/mqtt/radar","polar","guersant", p(D, A)) else endPlan "fail send MQTT";
 		[ ?? p(D, A) ] emit sonar : p(D, A);
 		delay time(5000);
 		repeatPlan 15

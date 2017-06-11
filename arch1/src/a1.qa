@@ -19,7 +19,7 @@ QActor robot context ctxBase{
 	Plan waitConsoleStart
 		println("ROBOT: I'm waiting start msg" );
 		/*
-		 * Attendo 5 minuti lo start, se non arriva termino il Robot
+		 * Wait for 5 minute the start, after this lapse of time the Robot shutdown
 		 */
 		receiveMsg time(300000);
 		onMsg robotstart:robotstart -> switchToPlan goStraight else endPlan "ROBOT: finish!";
@@ -46,7 +46,7 @@ QActor robot context ctxBase{
 	Plan sonarReached resumeLastPlan
 		demo assign(state,sonarreached);
 		println("ROBOT: Stop, Turn Left, Start Blinking, Take Pictures, Send Photo, Stop Blinking, Turn Right, Restart");
-		delay time(2000) // simulo il tempo di operazione
+		delay time(2000) 
 		
 	/*
 	 *  SCENARIO: 
@@ -69,12 +69,12 @@ QActor console context ctxBase {
 		/*
 		 * CONFIGURATION
 		 */
-		value(robotmove, 0). // stato del robot
-		value(nsonars, 3). // number of system's sonars
+		value(robotmove, 0). // Robot's state
+		value(nsonars, 3). // Number of system's sonars
 		value(dmin,75). // DMIN
 	}
 	Plan init normal
-		// mi connetto al server MQTT per la comunicazione con il Radar
+		// connection to MQTT server to show the sensors distance
 		actorOp connectToSend("guersant", "tcp://m2m.eclipse.org:1883", "unibo/mqtt/radar");
 		actorOp activateGui;
 		println("CONSOLE: ready!");
@@ -84,16 +84,19 @@ QActor console context ctxBase {
 	 *  SCENARIO: 
 	 * 	ID          : RobotReachAZone
 	 * 	DESCRIPTION : Robot reaches A zone and starts
-	 */	
-	// gestisco lo start	
+	 */		
 	Plan checkSystemStart
-		// se il robot è in area A inizializzo il sistema
+		// if Robot is in area A init the System
 		[ ?? value(area_a, 1) ] switchToPlan initSystem;
 		repeatPlan
 
-	// gestisco il restart del sistema
+	/*
+	 *  SCENARIO: 
+	 * 	ID          : Restart the system
+	 * 	DESCRIPTION : The Robot reaches the signal emitted by the Sonar
+	 */
 	Plan checkRestartSystem resumeLastPlan
-		// se il robot è in area A reinizializzo il sistema
+		// if the Robot is in area A restart the System
 		[ ?? value(area_a, 1) ] switchToPlan initSystem
 
 	Plan initSystem resumeLastPlan
@@ -103,7 +106,7 @@ QActor console context ctxBase {
 		[ ?? value(2,V)] println("clean");
 		[ ?? value(3,V)] println("clean");
 		
-		// se il robot sta gia' andando avanti lo lascio andare
+		// if robot is stopped restart
 		[ !? value(robotmove, 0)] forward robot -m robotstart:robotstart;
 		[ !? value(robotmove, 0)] demo assign(robotmove, 1);
 		switchToPlan senseSonar
@@ -114,8 +117,9 @@ QActor console context ctxBase {
 		repeatPlan
 	
 	Plan workflow resumeLastPlan
+		// show distance in Radar
 		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] actorOp sendToRadar(ID,D);
-		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] println(p(ID,D,A));
+		// memorize the distance
 		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] actorOp memoSonarEvent(ID, D, A);
 		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] switchToPlan checkThreshold;
 		[ ?? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] switchToPlan checkSonarReached
@@ -140,9 +144,9 @@ QActor console context ctxBase {
 	Plan checkSonarReached resumeLastPlan
 		actorOp sonarReached;
 		[ !? actorOpDone(sonarReached,1)] println("CONSOLE: sonarReached!");
-		// per UnitTest
+		// for UnitTest
 		[ !? actorOpDone(sonarReached,1)] demo assign(state,sonarreached);
-		// salvo il sonar raggiunto
+		// memorize the last sonar reached
 		[ !? actorOpDone(sonarReached,1)] demo inc(sonarreached,1,X);
 		[ !? actorOpDone(sonarReached,1)] forward robot -m sonarreached:sonarreached;
 		[ ?? actorOpDone(sonarReached,1)] switchToPlan checkAreaB
@@ -158,9 +162,9 @@ QActor console context ctxBase {
 		
 	Plan stopConsole
 		forward robot -m robotstop : robotstop;
-		// aggiorno lo stato del robot nella KB
+		// update the Robot's state in its KB
 		demo assign(robotmove, 0);
-		// per UnitTest
+		// for UnitTest
 		demo assign(state, finished);
 		println("CONSOLE: stop!");
 		switchToPlan checkSystemStart
