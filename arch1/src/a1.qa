@@ -19,7 +19,7 @@ QActor robot context ctxBase{
 	Plan waitConsoleStart
 		println("ROBOT: I'm waiting start msg" );
 		/*
-		 * Attendo 10 sec lo start, se non arriva termino il Robot
+		 * Attendo 5 minuti lo start, se non arriva termino il Robot
 		 */
 		receiveMsg time(300000);
 		onMsg robotstart:robotstart -> switchToPlan goStraight else endPlan "ROBOT: finish!";

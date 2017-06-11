@@ -124,48 +124,35 @@ public class Console extends AbstractConsole implements IActivity {
 				this.emit("sonar", "p(1,50,90)");
 				this.emit("sonar", "p(2,85,90)");
 				this.emit("sonar", "p(3,86,90)");
-				
 			}
 			else if(cmd.equals(actionNonDavantiS1_2)){
 				this.emit("sonar", "p(1,86,90)");
-				Thread.sleep(1000);
 				this.emit("sonar", "p(2,85,90)");
-				Thread.sleep(1000);
 				this.emit("sonar", "p(3,92,90)");
 			}
 			else if(cmd.equals(actionNonDavantiS2_1)){
 				this.emit("sonar", "p(1,86,89)");
-				Thread.sleep(1000);
 				this.emit("sonar", "p(2,86,90)");
-				Thread.sleep(1000);
 				this.emit("sonar", "p(3,86,86)");
 			}
 			else if(cmd.equals(actionS2)){
 				this.emit("sonar", "p(1,86,90)");
-				Thread.sleep(1000);
 				this.emit("sonar", "p(2,50,90)");
-				Thread.sleep(1000);
 				this.emit("sonar", "p(3,86,90)");
 			}
 			else if(cmd.equals(actionNonDavantiS2_2)){
 				this.emit("sonar", "p(1,86,90)");
-				Thread.sleep(1000);
 				this.emit("sonar", "p(2,86,90)");
-				Thread.sleep(1000);
 				this.emit("sonar", "p(3,86,90)");
 			}
 			else if(cmd.equals(actionNonDavantiS3_1)){
 				this.emit("sonar", "p(1,86,90)");
-				Thread.sleep(1000);
 				this.emit("sonar", "p(2,86,90)");
-				Thread.sleep(1000);
 				this.emit("sonar", "p(3,86,90)");
 			}
 			else if(cmd.equals(actionS3)){
 				this.emit("sonar", "p(1,86,90)");
-				Thread.sleep(1000);
 				this.emit("sonar", "p(2,87,90)");
-				Thread.sleep(1000);
 				this.emit("sonar", "p(3,50,90)");
 			}
 		} catch (Exception e) {
