@@ -1,15 +1,14 @@
 RobotSystem a2
 
-Event sonar : p(Id, Distance, Angle)
+Event sonar    : p(Id, Distance, Angle)
 Event obstacle : obstacle(Distance)
-Event    usercmd      	   : usercmd(X) 
+Event usercmd  : usercmd(X) 
 
 Dispatch sonarreached : sonarreached
-Dispatch robotstart:robotstart
-Dispatch robotstop : robotstop
-Dispatch userstop : userstop
-
+Dispatch robotstart   : robotstart
+Dispatch robotstop    : robotstop
 Context ctxBase ip [ host="localhost" port=8079] -g green -httpserver
+
 EventHandler evh_sonar for sonar -print{ 
 	memo currentEvent for console
 };
@@ -27,53 +26,76 @@ QActor console context ctxBase {
 		/*
 		 * CONFIGURATION
 		 */
-		value(area_a_angle, 60). // coord AreaA
-		value(area_a_dist, 60).
-		value(area_b_angle, 160). // coord AreaB
-		value(area_b_dist, 150).
+		value(robotmove, 0). // stato del robot
 		value(nsonars, 3). // number of system's sonars
-    	value(nextsonar, 1). // next sonar to reach
-    	value(dmin,70). // DMIN
+		value(dmin,75). // DMIN
 	}
 	Plan init normal
+		// mi connetto al server MQTT per la comunicazione con il Radar
+		actorOp connectToSend("guersant", "tcp://m2m.eclipse.org:1883", "unibo/mqtt/radar");
 		actorOp activateGui;
 		println("CONSOLE: ready!");
-		demo assign(noevent,0);
-		switchToPlan senseSonar
-		
-	Plan senseSonar resumeLastPlan
-		switchToPlan checkStopFromUser;
-		[ ??msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] actorOp memoSonarEvent(ID,D,A) else demo inc(noevent,1,X);
-		// If the Console doesn't receive an event from a Sonar stop it self
-		[ ?? value(noevent,10)] switchToPlan stopConsole;
-		delay time(1000);
-		[ !? actorOpDone(memoSonarEvent(ID,D,A),1)] demo assign(noevent,0);
-		
-		[ ?? actorOpDone(memoSonarEvent(ID,D,A),1)] switchToPlan workflow;
-		repeatPlan
-		
-	Plan workflow resumeLastPlan
-		switchToPlan checkAreaA;
-		switchToPlan checkAreaB;
-		switchToPlan checkSonarReached;
-		switchToPlan checkThreshold
-		
-	Plan checkAreaA resumeLastPlan
-		actorOp inAreaA;
-		[ !? actorOpDone(inAreaA,1)] println("CONSOLE: robot in area A!");
-		[ !? actorOpDone(inAreaA,1)] demo assign(nextsonar, 1);
-		[ ?? actorOpDone(inAreaA,1)] forward robot -m robotstart:robotstart
+		switchToPlan checkSystemStart
 		
 	/*
 	 *  SCENARIO: 
-	 * 	ID          : RobotReachBZone
-	 * 	DESCRIPTION : Robot reaches B zone and stops
-	 */
-	Plan checkAreaB resumeLastPlan
-		actorOp inAreaB;
-		[ !? actorOpDone(inAreaB,1)] println("CONSOLE: robot in area B!");
-		[ ?? actorOpDone(inAreaB,1)] forward robot -m robotstop : robotstop
+	 * 	ID          : RobotReachAZone
+	 * 	DESCRIPTION : Robot reaches A zone and starts
+	 */	
+	// gestisco lo start	
+	Plan checkSystemStart
+		// se il robot è in area A inizializzo il sistema
+		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(userstart)), SEQNUM )] println("CONSOLE: user start from web!!");
+		[ ?? msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(userstart)), SEQNUM )] switchToPlan initSystem; 
+		repeatPlan
+
+	// gestisco il restart del sistema
+	Plan checkRestartSystem resumeLastPlan
+		// se il robot è in area A reinizializzo il sistema
+		[ ?? msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(userstart)), SEQNUM )] switchToPlan initSystem
+
+	Plan initSystem resumeLastPlan
+		demo assign(sonarreached, 0);
+		// BRUTTO MA FUNZIONA PER CLEAN DELLA KB
+		[ ?? value(1,V)] println("clean");
+		[ ?? value(2,V)] println("clean");
+		[ ?? value(3,V)] println("clean");
 		
+		// se il robot sta gia' andando avanti lo lascio andare
+		[ !? value(robotmove, 0)] forward robot -m robotstart:robotstart;
+		[ !? value(robotmove, 0)] demo assign(robotmove, 1);
+		switchToPlan senseSonar
+		
+	Plan senseSonar resumeLastPlan
+		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] switchToPlan workflow;
+		switchToPlan checkRestartSystem; // control the system restart
+		switchToPlan checkStopFromUser;
+		repeatPlan
+	
+	Plan checkStopFromUser resumeLastPlan
+		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(userstop)), SEQNUM )] println("CONSOLE: user stop from web!!");
+		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(userstop)), SEQNUM )] demo assign(state,userstop);
+		[ ?? msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(userstop)), SEQNUM )] switchToPlan stopConsole
+			
+	Plan workflow resumeLastPlan
+		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] actorOp sendToRadar(ID,D);
+		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] println(p(ID,D,A));
+		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] actorOp memoSonarEvent(ID, D, A);
+		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] switchToPlan checkThreshold;
+		[ ?? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] switchToPlan checkSonarReached
+
+	/*
+	 *  SCENARIO: 
+	 * 	ID          : Alarm emitted
+	 * 	DESCRIPTION : The System emits an alarm when computes a value under a specific threshold
+	 */
+	Plan checkThreshold resumeLastPlan
+		actorOp expLessThanDMIN;
+		[ !? actorOpDone(expLessThanDMIN,1)] println("CONSOLE: underThreshold!");
+		[ !? actorOpDone(expLessThanDMIN,1)] demo assign(state,underthreshold);
+		[ ?? actorOpDone(expLessThanDMIN,1)] switchToPlan stopConsole
+	
+
 	/*
 	 *  SCENARIO: 
 	 * 	ID          : Robot Reaches Sonar
@@ -82,57 +104,51 @@ QActor console context ctxBase {
 	Plan checkSonarReached resumeLastPlan
 		actorOp sonarReached;
 		[ !? actorOpDone(sonarReached,1)] println("CONSOLE: sonarReached!");
+		// per UnitTest
 		[ !? actorOpDone(sonarReached,1)] demo assign(state,sonarreached);
-		[ !? actorOpDone(sonarReached,1)] demo inc(nextsonar,1,X);
-		[ ?? actorOpDone(sonarReached,1)] forward robot -m sonarreached:sonarreached
+		// salvo il sonar raggiunto
+		[ !? actorOpDone(sonarReached,1)] demo inc(sonarreached,1,X);
+		[ !? actorOpDone(sonarReached,1)] forward robot -m sonarreached:sonarreached;
+		[ ?? actorOpDone(sonarReached,1)] switchToPlan checkAreaB
 		
 	/*
 	 *  SCENARIO: 
-	 * 	ID          : Alarm emitted
-	 * 	DESCRIPTION : The System emits an alarm when computes a value under a specific threshold
+	 * 	ID          : RobotReachBZone
+	 * 	DESCRIPTION : Robot reaches B zone and stops
 	 */
-	Plan checkThreshold resumeLastPlan
-		actorOp expLessThanDMIN;
-		[ !? actorOpDone(lessThanDMIN,1)] println("CONSOLE: underThreshold!");
-		[ !? actorOpDone(lessThanDMIN,1)] demo assign(state,underthreshold);
-		[ ?? actorOpDone(lessThanDMIN,1)] forward robot -m robotstop:robotstop
-	
+	Plan checkAreaB resumeLastPlan
+		actorOp inAreaB;
+		[ ?? actorOpDone(inAreaB, 1)] switchToPlan stopConsole
+		
 	Plan stopConsole
 		forward robot -m robotstop : robotstop;
+		// aggiorno lo stato del robot nella KB
+		demo assign(robotmove, 0);
+		// per UnitTest
 		demo assign(state, finished);
-		println("CONSOLE: stop!")
-		
-	Plan checkStopFromUser resumeLastPlan
-		[??msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(X), SEQNUM )] actorOp stopUserReceived(X);
-		[ !? actorOpDone(OP,1)] println("CONSOLE: user stop web!!");
-		[ !? actorOpDone(OP,1)] demo assign(state,usercmd);
-		[ ?? actorOpDone(OP,1)] forward robot -m userstop:userstop
+		println("CONSOLE: stop!");
+		switchToPlan checkSystemStart
+
 }
 
 QActor sensorsonar context ctxBase  {    
 	Rules{
 		/* SIMULATION DATA */
 		//simulation.	
-		p(1,58,59).p(1,54,68).p(1,51,79).p(1,50,90).p(1,51,101).
+		p(1,58,59).p(1,54,68).p(1,51,79).p(1,51,90).p(1,51,101).
 		p(1,54,112).p(1,58,121).p(1,64,129).p(1,71,135).p(1,78,140).
-		p(1,86,144).p(1,94,148).p(1,103,151).p(1,112,153).p(1,121,156).
-		p(1,11,157).p(1,139,159).p(1,149,160).p(1,158,162).
-		
+		p(1,86,144).p(1,94,148).p(1,103,151).p(1,112,153).
+		p(1,121,156).p(1,11,157).p(1,139,159).p(1,149,160).p(1,158,162).
+
 		p(2,103,29).p(2,94,32).p(2,86,36).p(2,78,40).p(2,71,45).
-		p(2,64,51).p(2,58,59).p(2,54,68).p(2,51,79).p(2,50,90).
+		p(2,64,51).p(2,58,59).p(2,54,68).p(2,51,79).p(2,86,90).
 		p(2,51,101).p(2,54,112).p(2,58,121).p(2,64,129).p(2,71,135).
 		p(2,78,140).p(2,86,144).p(2,94,148).p(2,103,151).
-		
+
 		p(3,158,18).p(3,149,20).p(3,139,21).p(3,11,23).p(3,121,24).
 		p(3,112,27).p(3,103,29).p(3,94,32).p(3,86,36).p(3,78,40).
 		p(3,71,45).p(3,64,51).p(3,58,59).p(3,54,68).p(3,51,79).
-		p(3,50,90).p(3,51,101).p(3,54,112).p(3,58,121).	
-		
-		/*
-		 * Area A -> p(58,59)
-		 * Davanti Sonar -> p(50,90)
-		 * Area B -> p(158,162)
-		 */
+		p(3,139,21).p(3,51,101).p(3,54,112).p(3,58,121).	
 	}	  
  	    
  	Plan init normal     
@@ -142,17 +158,17 @@ QActor sensorsonar context ctxBase  {
  	Plan workSimulate   resumeLastPlan
   	 	[ !? p(1, D, A) ] println(p(1, D, A)); 
 		[ ?? p(1, D, A) ] emit sonar : p(1, D, A);
-		delay time(5000);
+		delay time(2000);
 		[ !? p(2, D, A) ] println(p(2, D, A)); 
 		[ ?? p(2, D, A) ] emit sonar : p(2, D, A);
-		delay time(5000);
+		delay time(2000);
 		[ !? p(3, D, A) ] println(p(3, D, A)) else endPlan "SONARS: bye"; 
 		[ ?? p(3, D, A) ] emit sonar : p(3, D, A);
-		delay time(5000);
+		delay time(2000);
 		repeatPlan 15	
 	Plan work resumeLastPlan
 		repeatPlan
-}  
+} 
 
 Robot mock QActor robot context ctxBase {
 	Plan init normal
@@ -162,9 +178,9 @@ Robot mock QActor robot context ctxBase {
 	Plan waitConsoleStart
 		println("ROBOT: I'm waiting start msg" );
 		/*
-		 * Attendo 10 sec lo start, se non arriva termino il Robot
+		 * Attendo 5 minuti lo start, se non arriva termino il Robot
 		 */
-		receiveMsg time(10000);
+		receiveMsg time(300000);
 		onMsg robotstart:robotstart -> switchToPlan goStraight else endPlan "ROBOT: finish!";
 		repeatPlan
 		
@@ -183,7 +199,6 @@ Robot mock QActor robot context ctxBase {
 		receiveMsg time(1000);
 		onMsg sonarreached:sonarreached -> switchToPlan sonarReached;
 		onMsg robotstop   :robotstop    -> switchToPlan stopTheRobot;
-		onMsg userstop:userstop -> switchToPlan stopTheRobot;
 		repeatPlan
 		
 	/*
@@ -210,4 +225,4 @@ Robot mock QActor robot context ctxBase {
 		println("ROBOT: Stop");
 		demo assign(state,stop);
 		switchToPlan waitConsoleStart
-}
+} 
