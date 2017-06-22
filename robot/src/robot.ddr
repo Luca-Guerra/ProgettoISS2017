@@ -1,0 +1,110 @@
+RobotSystem progettoISS
+
+Event sonar    : p(Id, Distance, Angle)
+Event obstacle : obstacle(Distance)
+Event usercmd  : usercmd(X) 
+
+Dispatch sonarreached : sonarreached
+Dispatch robotstart   : robotstart
+Dispatch robotstop    : robotstop
+Dispatch photo_wall   : photo_wall
+Dispatch obstacle_ack : obstacle_ack
+
+Context ctxPc ip [ host="192.168.43.212"  port=8070 ] -g green 
+
+EventHandler evh_sonar for sonar -print{
+	memo currentEvent for console
+};
+
+EventHandler evh_user for usercmd -print{ 
+	memo currentEvent for console
+};
+
+Context ctxRobot ip [ host="localhost" port=8071 ] -httpserver 
+
+EventHandler evh_robotsonar for obstacle -print{ 
+	memo currentEvent for robot
+};
+
+QActor console context ctxPc {
+	
+	Plan init normal
+		println ("placeholder")
+}
+
+QActor sensorsonar context ctxPc  {    
+	Plan init normal     
+ 		println ("placeholder")
+} 
+
+Robot nanolego QActor robot context ctxRobot {
+	Plan init normal
+		println("ROBOT: Ready" );
+		actorOp connectToSend("robotphoto", "tcp://m2m.eclipse.org:1883", "unibo/mqtt/photowall");
+		switchToPlan waitConsoleStart
+	
+	Plan waitConsoleStart
+		// reset the value
+		demo assign(sonarreached, 0);
+		println("ROBOT: I'm waiting start msg" );
+		/*
+		 * Wait for 5 minute the start, after this lapse of time the Robot shutdown
+		 */
+		receiveMsg time(300000);
+		onMsg robotstart:robotstart -> switchToPlan goStraight else endPlan "ROBOT: finish!";
+		repeatPlan
+		
+	/*
+	 *  SCENARIO: 
+	 * 	ID          : Robot go straight on
+	 * 	DESCRIPTION : The Robot continues in a straight line to the B zone
+	 */
+	Plan goStraight resumeLastPlan
+		println("ROBOT: goStraight");
+		robotForward speed(80) time(1000);
+		demo assign(state,gostraight);
+		
+		[ !?msg( MSGID, MSGTYPE, SENDER, RECEIVER, obstacle(D), SEQNUM )] println("ROBOT: obstacle reached!");
+		[ !?msg( MSGID, MSGTYPE, SENDER, RECEIVER, obstacle(D), SEQNUM )] forward console -m obstacle_ack : obstacle_ack;
+		[ ??msg( MSGID, MSGTYPE, SENDER, RECEIVER, obstacle(D), SEQNUM )] switchToPlan stopTheRobot;
+		
+		receiveMsg time(1000);
+		onMsg sonarreached:sonarreached -> switchToPlan sonarReached;
+		onMsg robotstop   :robotstop    -> switchToPlan stopTheRobot;
+		repeatPlan
+		
+	/*
+	 *  SCENARIO: 
+	 * 	ID          : Robot Reaches Sonar
+	 * 	DESCRIPTION : The Robot reaches the signal emitted by the Sonar
+	 */
+	Plan sonarReached resumeLastPlan
+		demo inc(sonarreached,1,X);
+		demo assign(state,sonarreached);
+		robotStop speed(80) time(1000);
+		robotLeft speed(80) time(1000);
+		println("Start Blinking");
+		delay time(1000);
+		[ !? value(sonarreached, ID) ] println("Take photo");
+		[ !? value(sonarreached, ID) ] actorOp sendToConsole(ID);
+		delay time(1000);
+		println("Stop Blinking");
+		robotRight speed(80) time(1000)
+		
+		
+	/*
+	 *  SCENARIO: 
+	 * 	ID          : Allarm emitted
+	 * 	DESCRIPTION : The System emits an allarm when computes a value under a specific threshold
+	 * 				  (sk + sk + 1 + ...sN)/(N - k + 1)
+	 */
+	Plan thresholdExceeded
+		demo assign(state,thresholdexceeded);
+		switchToPlan stopTheRobot
+	
+	Plan stopTheRobot
+		println("ROBOT: Stop");
+		robotStop speed(80) time(1000);
+		demo assign(state,stop);
+		switchToPlan waitConsoleStart
+} 

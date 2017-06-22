@@ -1,0 +1,13 @@
+RobotBase nanolego
+//BASIC                          
+motorleft  = Motor  [ gpiomotor pincw 16 pinccw 15 ]   position: LEFT
+motorright = Motor  [ gpiomotor pincw 13 pinccw 12  ]  position: RIGHT
+//SENSORS
+distanceFront  = Distance  [ sonarhcsr04 pintrig 2 pinecho 0]  position: FRONT_TOP
+//distanceFront  = Distance  [ sonarhcsr04 pintrig 7 pinecho 9]  position: FRONT_TOP
+//distFrontMock= Distance [ simulated 0  ] position: FRONT
+//distanceFront  = Distance  [  process "./SonarJson"]  position: FRONT_TOP
+//COMPOSED 
+motors = Actuators [ motorleft , motorright  ] private position: BOTTOM
+Mainrobot nanolego  [ motors ]    
+;
