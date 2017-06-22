@@ -10,7 +10,7 @@ import it.unibo.qactors.akka.QActor;
 import it.unibo.system.SituatedPlainObject;
 
 public class SensorObserver<T extends ISensorData> extends SituatedPlainObject implements ISensorObserver<T>{
-protected QActor actor;
+	protected QActor actor;
 	public SensorObserver(QActor actor, IOutputView outView) { 
 		super(outView);
 		this.actor = actor;
@@ -41,6 +41,7 @@ protected QActor actor;
 	*/
 	protected void handleData(T data) throws Exception{
 		//println("SensorObserver data=" + data.getDefStringRep() + " json:" + data.getJsonStringRep());
+		
 		Struct t = (Struct) Term.createTerm(data.getDefStringRep());
  		//QActorUtils.raiseEvent(actor.getQActorContext(),"sensor", "sensordata", "sensordata("+data.getDefStringRep()+")" );
 		if( t.getName().equals("distance")){

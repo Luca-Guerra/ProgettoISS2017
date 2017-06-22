@@ -43,13 +43,14 @@ public class TestSonarReached {
 		 * NOME: SonarReached
 		 * NOTE: Controlliamo se il Robot una volta raggiunto un sonar 
 		 *       reagisce correttamente al segnale dalla console
-		 * 1) immetto il termine areaa 1, questo fa partire il sistema
-		 * 2) controllo accensione e gostraight del Robot
-		 * 3) segnale sonar che indica il Robot davanti al sonar
-		 * 4) controllo il Robot faccia l'operazione
-		 * 5) controllo il Roboto continui dritto (gostraight)
-		 * 6) segnale area B raggiunta
-		 * 7) controllo il Robot sia fermo (stop)
+		 * - immetto il termine area_a 1, questo fa partire il sistema
+		 * - controllo accensione e gostraight del Robot
+		 * - controllo il valore di sonarreach sia a 0
+		 * - segnale sonar che indica il Robot davanti al sonar
+		 * - controllo il Robot faccia l'operazione
+		 * - controllo il Roboto continui dritto (gostraight)
+		 * - controllo il valore di sonarreach sia a 1
+		 * - controllo il Robot sia fermo (stop)
 		 * */
 		try {
 			assertTrue("execTest console", console != null );
@@ -61,6 +62,7 @@ public class TestSonarReached {
 			Thread.sleep(2000);
 			// robot gostraight
 			assertTrue("execTest", robot.solveGoal("value(state,X)").getVarValue("X").toString().equals("gostraight"));
+			assertTrue("execTest", console.solveGoal("value(sonarreached,X)").getVarValue("X").toString().equals("0"));
 			Thread.sleep(1000);
 			// sonarreached event
 			sonar.emit("sonar", "p(1,50,90)");
@@ -69,6 +71,7 @@ public class TestSonarReached {
 			Thread.sleep(4000); // attendo il termine dell'operazione
 			// robot gostraight
 			assertTrue("execTest", robot.solveGoal("value(state,X)").getVarValue("X").toString().equals("gostraight"));
+			assertTrue("execTest", console.solveGoal("value(sonarreached,X)").getVarValue("X").toString().equals("1"));
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 			fail("execTest " + e.getMessage());
