@@ -7,6 +7,8 @@ Event usercmd  : usercmd(X)
 Dispatch sonarreached : sonarreached
 Dispatch robotstart   : robotstart
 Dispatch robotstop    : robotstop
+Dispatch obstacle_ack : obstacle_ack
+
 Context ctxBase ip [ host="localhost" port=8079] -g green -httpserver
 
 EventHandler evh_sonar for sonar -print{ 
@@ -59,7 +61,7 @@ QActor console context ctxBase {
 
 	Plan initSystem resumeLastPlan
 		demo assign(sonarreached, 0);
-		// BRUTTO MA FUNZIONA PER CLEAN DELLA KB
+		// reset KB
 		[ ?? value(1,V)] println("clean");
 		[ ?? value(2,V)] println("clean");
 		[ ?? value(3,V)] println("clean");
@@ -67,20 +69,31 @@ QActor console context ctxBase {
 		// if robot is stopped restart
 		[ !? value(robotmove, 0)] forward robot -m robotstart:robotstart;
 		[ !? value(robotmove, 0)] demo assign(robotmove, 1);
-		switchToPlan senseSonar
+		switchToPlan workflow
 		
-	Plan senseSonar resumeLastPlan
-		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] switchToPlan workflow;
+	Plan workflow resumeLastPlan
+		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] switchToPlan checkSonarEvent;
 		switchToPlan checkRestartSystem; // control the system restart
+		switchToPlan checkObstacleAck;
 		switchToPlan checkStopFromUser;
 		repeatPlan
+	
+	Plan checkObstacleAck resumeLastPlan
+		receiveMsg time(1000);
+		onMsg obstacle_ack:obstacle_ack -> switchToPlan robotFindObstacle
+	
+	Plan robotFindObstacle resumeLastPlan
+		println("CONSOLE: Obstacle!");
+		// update the Robot's state in its KB
+		demo assign(robotmove, 0);
+		switchToPlan checkSystemStart
 	
 	Plan checkStopFromUser resumeLastPlan
 		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(userstop)), SEQNUM )] println("CONSOLE: user stop from web!!");
 		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(userstop)), SEQNUM )] demo assign(state,userstop);
 		[ ?? msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(userstop)), SEQNUM )] switchToPlan stopConsole
 			
-	Plan workflow resumeLastPlan
+	Plan checkSonarEvent resumeLastPlan
 	    // show distance in Radar
 		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] actorOp sendToRadar(ID,D);
 		// memorize the distance
@@ -199,6 +212,7 @@ Robot mock QActor robot context ctxBase {
 		demo assign(state,gostraight);
 		
 		[ !?msg( MSGID, MSGTYPE, SENDER, RECEIVER, obstacle(D), SEQNUM )] println("ROBOT: obstacle reached!");
+		[ !?msg( MSGID, MSGTYPE, SENDER, RECEIVER, obstacle(D), SEQNUM )] forward console -m obstacle_ack : obstacle_ack;
 		[ ??msg( MSGID, MSGTYPE, SENDER, RECEIVER, obstacle(D), SEQNUM )] switchToPlan stopTheRobot;
 		
 		receiveMsg time(1000);
@@ -218,6 +232,7 @@ Robot mock QActor robot context ctxBase {
 		println("Start Blinking");
 		delay time(1000);
 		println("Take photo");
+		[ !? value(sonarreached, ID) ] actorOp sendToConsole(ID);
 		delay time(1000);
 		println("Stop Blinking");
 		robotRight speed(80) time(1000)

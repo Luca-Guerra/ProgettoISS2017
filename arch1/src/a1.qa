@@ -101,7 +101,7 @@ QActor console context ctxBase {
 
 	Plan initSystem resumeLastPlan
 		demo assign(sonarreached, 0);
-		// BRUTTO MA FUNZIONA PER CLEAN DELLA KB
+		// clean KB
 		[ ?? value(1,V)] println("clean");
 		[ ?? value(2,V)] println("clean");
 		[ ?? value(3,V)] println("clean");
@@ -109,14 +109,14 @@ QActor console context ctxBase {
 		// if robot is stopped restart
 		[ !? value(robotmove, 0)] forward robot -m robotstart:robotstart;
 		[ !? value(robotmove, 0)] demo assign(robotmove, 1);
-		switchToPlan senseSonar
+		switchToPlan workflow
 		
-	Plan senseSonar resumeLastPlan
-		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] switchToPlan workflow;
+	Plan workflow resumeLastPlan
+		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] switchToPlan checkSonarEvent;
 		switchToPlan checkRestartSystem; // control the system restart
 		repeatPlan
 	
-	Plan workflow resumeLastPlan
+	Plan checkSonarEvent resumeLastPlan
 		// show distance in Radar
 		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] actorOp sendToRadar(ID,D);
 		// memorize the distance

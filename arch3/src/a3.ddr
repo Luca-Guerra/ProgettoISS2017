@@ -7,8 +7,8 @@ Event usercmd  : usercmd(X)
 Dispatch sonarreached : sonarreached
 Dispatch robotstart   : robotstart
 Dispatch robotstop    : robotstop
-
 Dispatch photo_wall    : photo_wall
+Dispatch obstacle_ack : obstacle_ack
 
 Context ctxBase ip [ host="localhost" port=8079] -g green -httpserver
 
@@ -48,7 +48,7 @@ QActor console context ctxBase {
 	Plan cleanTopic resumeLastPlan
 		println("clean");
 		receiveMsg time (1000);
-		onMsg photo_wall : photo_wall(ID) -> println(ID)
+		onMsg photo_wall : photo_wall(ID) -> switchToPlan cleanTopic
 		
 	/*
 	 *  SCENARIO: 
@@ -73,16 +73,27 @@ QActor console context ctxBase {
 		// if robot is stopped restart
 		[ !? value(robotmove, 0)] forward robot -m robotstart:robotstart;
 		[ !? value(robotmove, 0)] demo assign(robotmove, 1);
-		switchToPlan senseSonar
+		switchToPlan workflow
 		
-	Plan senseSonar resumeLastPlan
-		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] switchToPlan workflow;
+	Plan workflow resumeLastPlan
+		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] switchToPlan checkSonarEvent;
 		switchToPlan checkRestartSystem; // control the system restart
 		switchToPlan checkStopFromUser;
-		switchToPlan checkNewPhoto;
+		switchToPlan checkRobotCommunications;
 		repeatPlan
 	
-	Plan workflow resumeLastPlan
+	Plan checkRobotCommunications resumeLastPlan
+		receiveMsg time(1000);
+		onMsg obstacle_ack:obstacle_ack -> switchToPlan robotFindObstacle;
+		onMsg photo_wall:photo_wall(ID) -> println(ID)
+	
+	Plan robotFindObstacle resumeLastPlan
+		println("CONSOLE: Obstacle!");
+		// update the Robot's state in its KB
+		demo assign(robotmove, 0);
+		switchToPlan checkSystemStart
+	
+	Plan checkSonarEvent resumeLastPlan
 	    // show distance in Radar
 		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] actorOp sendToRadar(ID,D);
 		// memorize the distance
@@ -130,11 +141,6 @@ QActor console context ctxBase {
 		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(userstop)), SEQNUM )] println("CONSOLE: user stop from web!!");
 		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(userstop)), SEQNUM )] demo assign(state,userstop);
 		[ ?? msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(userstop)), SEQNUM )] switchToPlan stopConsole
-			
-	Plan checkNewPhoto resumeLastPlan
-		receiveMsg time(1000);
-		onMsg photo_wall:photo_wall(ID) -> println(ID)
-	
 		
 	/*
 	 *  SCENARIO: 
@@ -223,6 +229,7 @@ Robot mock QActor robot context ctxBase {
 		demo assign(state,gostraight);
 		
 		[ !?msg( MSGID, MSGTYPE, SENDER, RECEIVER, obstacle(D), SEQNUM )] println("ROBOT: obstacle reached!");
+		[ !?msg( MSGID, MSGTYPE, SENDER, RECEIVER, obstacle(D), SEQNUM )] forward console -m obstacle_ack : obstacle_ack;
 		[ ??msg( MSGID, MSGTYPE, SENDER, RECEIVER, obstacle(D), SEQNUM )] switchToPlan stopTheRobot;
 		
 		receiveMsg time(1000);
@@ -242,7 +249,7 @@ Robot mock QActor robot context ctxBase {
 		robotLeft speed(80) time(1000);
 		println("Start Blinking");
 		delay time(1000);
-		[ !? value(sonarreached, ID) ] println("Take photo");
+		println("Take photo");
 		[ !? value(sonarreached, ID) ] actorOp sendToConsole(ID);
 		delay time(1000);
 		println("Stop Blinking");

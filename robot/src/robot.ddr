@@ -85,7 +85,7 @@ Robot nanolego QActor robot context ctxRobot {
 		robotLeft speed(80) time(1000);
 		println("Start Blinking");
 		delay time(1000);
-		[ !? value(sonarreached, ID) ] println("Take photo");
+		println("Take photo");
 		[ !? value(sonarreached, ID) ] actorOp sendToConsole(ID);
 		delay time(1000);
 		println("Stop Blinking");

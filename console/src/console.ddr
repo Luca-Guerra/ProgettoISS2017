@@ -50,7 +50,7 @@ QActor console context ctxPc {
 	Plan cleanTopic resumeLastPlan
 		println("clean");
 		receiveMsg time (1000);
-		onMsg photo_wall : photo_wall(ID) -> println(ID)
+		onMsg photo_wall : photo_wall(ID) -> switchToPlan cleanTopic
 		
 	/*
 	 *  SCENARIO: 
@@ -63,11 +63,9 @@ QActor console context ctxPc {
 		[ ?? msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(userstart)), SEQNUM )] switchToPlan initSystem; 
 		repeatPlan
 
-	
-
 	Plan initSystem resumeLastPlan
 		demo assign(sonarreached, 0);
-		// Clean KB per restart
+		// reset KB
 		[ ?? value(1,V)] println("clean");
 		[ ?? value(2,V)] println("clean");
 		[ ?? value(3,V)] println("clean");
@@ -75,17 +73,27 @@ QActor console context ctxPc {
 		// if robot is stopped restart
 		[ !? value(robotmove, 0)] forward robot -m robotstart:robotstart;
 		[ !? value(robotmove, 0)] demo assign(robotmove, 1);
-		switchToPlan senseSonar
+		switchToPlan workflow
 		
-	Plan senseSonar resumeLastPlan
-		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] switchToPlan workflow;
+	Plan workflow resumeLastPlan
+		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] switchToPlan checkSonarEvent;
 		switchToPlan checkRestartSystem; // control the system restart
 		switchToPlan checkStopFromUser;
-		switchToPlan checkObstacleAck;
-		switchToPlan checkNewPhoto;
+		switchToPlan checkRobotCommunications;
 		repeatPlan
 	
-	Plan workflow resumeLastPlan
+	Plan checkRobotCommunications resumeLastPlan
+		receiveMsg time(1000);
+		onMsg obstacle_ack:obstacle_ack -> switchToPlan robotFindObstacle;
+		onMsg photo_wall:photo_wall(ID) -> println(ID)
+	
+	Plan robotFindObstacle resumeLastPlan
+		println("Obstacle!");
+		// update the Robot's state in its KB
+		demo assign(robotmove, 0);
+		switchToPlan checkSystemStart
+	
+	Plan checkSonarEvent resumeLastPlan
 	    // show distance in Radar
 		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, p(ID,D,A), SEQNUM )] actorOp sendToRadar(ID,D);
 		// memorize the distance
@@ -134,14 +142,6 @@ QActor console context ctxPc {
 		[ !? msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(userstop)), SEQNUM )] demo assign(state,userstop);
 		[ ?? msg( MSGID, MSGTYPE, SENDER, RECEIVER, usercmd(robotgui(userstop)), SEQNUM )] switchToPlan stopConsole
 			
-	Plan checkObstacleAck resumeLastPlan
-		receiveMsg time(1000);
-		onMsg obstacle_ack:obstacle_ack -> switchToPlan stopConsole
-			
-	Plan checkNewPhoto resumeLastPlan
-		receiveMsg time(1000);
-		onMsg photo_wall:photo_wall(ID) -> println(ID)
-	
 		
 	/*
 	 *  SCENARIO: 
