@@ -1,7 +1,7 @@
 System a2
 
 Event sonar    : p(Id, Distance, Angle)
-Event obstacle : obstacle(Distance)
+Event obstacle : obstacle
 Event usercmd  : usercmd(X) 
 
 Dispatch sonarreached : sonarreached
@@ -86,6 +86,8 @@ QActor console context ctxBase {
 		println("CONSOLE: Obstacle!");
 		// update the Robot's state in its KB
 		demo assign(robotmove, 0);
+		// only for JUnit
+		demo assign(state,obstacle);
 		switchToPlan checkSystemStart
 	
 	Plan checkStopFromUser resumeLastPlan
@@ -141,8 +143,6 @@ QActor console context ctxBase {
 		forward robot -m robotstop : robotstop;
 		// update the Robot's state in its KB
 		demo assign(robotmove, 0);
-		// for UnitTest
-		demo assign(state, finished);
 		println("CONSOLE: stop!");
 		switchToPlan checkSystemStart
 
@@ -210,9 +210,9 @@ QActor robot context ctxBase {
 		println("ROBOT: goStraight");
 		demo assign(state,gostraight);
 		
-		[ !?msg( MSGID, MSGTYPE, SENDER, RECEIVER, obstacle(D), SEQNUM )] println("ROBOT: obstacle reached!");
-		[ !?msg( MSGID, MSGTYPE, SENDER, RECEIVER, obstacle(D), SEQNUM )] forward console -m obstacle_ack : obstacle_ack;
-		[ ??msg( MSGID, MSGTYPE, SENDER, RECEIVER, obstacle(D), SEQNUM )] switchToPlan stopTheRobot;
+		[ !?msg( MSGID, MSGTYPE, SENDER, RECEIVER, obstacle, SEQNUM )] println("ROBOT: obstacle reached!");
+		[ !?msg( MSGID, MSGTYPE, SENDER, RECEIVER, obstacle, SEQNUM )] forward console -m obstacle_ack : obstacle_ack;
+		[ ??msg( MSGID, MSGTYPE, SENDER, RECEIVER, obstacle, SEQNUM )] switchToPlan stopTheRobot;
 		
 		receiveMsg time(1000);
 		onMsg sonarreached:sonarreached -> switchToPlan sonarReached;
@@ -229,7 +229,6 @@ QActor robot context ctxBase {
 		println("Start Blinking");
 		delay time(1000);
 		println("Take photo");
-		[ !? value(sonarreached, ID) ] actorOp sendToConsole(ID);
 		delay time(1000);
 		println("Stop Blinking")
 		
