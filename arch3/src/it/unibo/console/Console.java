@@ -18,7 +18,8 @@ public class Console extends AbstractConsole implements IActivity {
 	private String actionNonDavantiS2_2 = "ND_S2_2";
 	private String actionNonDavantiS3_1 = "ND_S3_1";
 	private String actionS3 = "S3";
-	
+	private String obstacle = "OBSTACLE!";
+
 	public Console(String actorId, QActorContext myCtx, IOutputEnvView outEnvView )  throws Exception{
 		super(actorId, myCtx, outEnvView);
 	}
@@ -104,7 +105,7 @@ public class Console extends AbstractConsole implements IActivity {
 		outEnvView.getEnv().addCmdPanel("btn", new String[]{
 				actionNonDavantiS1_1,actionS1,actionNonDavantiS1_2,
 				actionNonDavantiS2_1,actionS2,actionNonDavantiS2_2,
-				actionNonDavantiS3_1,actionS3}, this);
+				actionNonDavantiS3_1,actionS3, obstacle}, this);
 		return true;
 	}
 	
@@ -150,6 +151,9 @@ public class Console extends AbstractConsole implements IActivity {
 				this.emit("sonar", "p(1,86,90)");
 				this.emit("sonar", "p(2,87,90)");
 				this.emit("sonar", "p(3,50,90)");
+			}
+			else if(cmd.equals(obstacle)){
+				this.emit("obstacle", "obstacle");
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
