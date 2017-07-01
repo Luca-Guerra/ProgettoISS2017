@@ -174,4 +174,40 @@ public class Console extends AbstractConsole implements IActivity {
 		return null;
 	}
 	
+	
+	public void showPhoto(int ID){
+		switch(ID){
+			case 1: {
+				outEnvView.addOutput("=========================================================================");
+				outEnvView.addOutput("Yb                dP        db         88          88                      .d  ");
+				outEnvView.addOutput("  Yb    db    dP        dPYb      88          88                  .d88  ");
+				outEnvView.addOutput("    YbdPYbdP        dP__Yb   88      .o 88     .o              88  ");
+				outEnvView.addOutput("      YP    YP        dP        Yb  88ood8  88ood8             88  ");
+				outEnvView.addOutput("=========================================================================");
+				break;
+			}
+			case 2: {
+				outEnvView.addOutput("=========================================================================");
+				outEnvView.addOutput("Yb                dP        db         88          88                      oP''Yb.  ");
+				outEnvView.addOutput("  Yb    db    dP        dPYb      88          88                        ' dP'  ");
+				outEnvView.addOutput("    YbdPYbdP        dP__Yb   88      .o 88     .o              dP'  ");
+				outEnvView.addOutput("      YP    YP        dP        Yb  88ood8  88ood8             .d8888  ");
+				outEnvView.addOutput("=========================================================================");
+				break;
+			}
+			case 3: {
+				outEnvView.addOutput("=========================================================================");
+				outEnvView.addOutput("Yb                dP        db         88          88                       88888  ");
+				outEnvView.addOutput("  Yb    db    dP        dPYb      88          88                            .dP  ");
+				outEnvView.addOutput("    YbdPYbdP        dP__Yb   88      .o 88     .o              o   `Yb  ");
+				outEnvView.addOutput("      YP    YP        dP        Yb  88ood8  88ood8             YbodP  ");
+				outEnvView.addOutput("=========================================================================");
+				break;
+			}
+			default:{
+				System.out.println(ID);
+				break;
+			}
+		}
+	}
 }

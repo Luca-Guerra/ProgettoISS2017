@@ -9,12 +9,36 @@ import it.unibo.qactors.QActorUtils;
 import it.unibo.qactors.akka.QActor;
 import it.unibo.system.SituatedPlainObject;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import javax.swing.Timer;
+
 public class SensorObserver<T extends ISensorData> extends SituatedPlainObject implements ISensorObserver<T>{
 protected QActor actor;
 public int counterForObstacle=0;
+public int lastDistance=0;
+public Timer timer;
 	public SensorObserver(QActor actor, IOutputView outView) { 
 		super(outView);
-		this.actor = actor;
+		this.actor = actor;		
+		timer= new Timer(3000,new ActionListener(){
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// TODO Auto-generated method stub
+				if(counterForObstacle>10){
+					println("DEBUG OBSTACLE");
+					try {
+						QActorUtils.raiseEvent(actor.getQActorContext(),"sensor", "obstacle", "obstacle(" + lastDistance + ")" );
+					} catch (Exception e1) {
+						e1.printStackTrace();
+					}
+				}
+				counterForObstacle=0;
+			}
+		});
+		timer.setRepeats(true);
+		timer.start();
  	}
 	@Override
  	/*
@@ -41,18 +65,20 @@ public int counterForObstacle=0;
 	* -----------------------------------------------
 	*/
 	protected void handleData(T data) throws Exception{
-		counterForObstacle++;
 		Struct t = (Struct) Term.createTerm(data.getDefStringRep());
  		//QActorUtils.raiseEvent(actor.getQActorContext(),"sensor", "sensordata", "sensordata("+data.getDefStringRep()+")" );
+		println("SensorObserver data=" + data.getDefStringRep() +"  "+counterForObstacle);
 		if( t.getName().equals("distance")){
 			int d = Integer.parseInt(t.getArg(0).toString());
 			//if( d > 5 && d < 120 ) println("SensorObserver: " + data.getDefStringRep() + " json:" + data.getJsonStringRep());
 			if( d < 10 ){
-				if(counterForObstacle>10){
-					println("SensorObserver data=" + data.getDefStringRep());
+				counterForObstacle++;
+				lastDistance=d;
+				/*if(counterForObstacle>10){
+					println("DEBUG OBSTACLE");
 					QActorUtils.raiseEvent(actor.getQActorContext(),"sensor", "obstacle", "obstacle("+d+")" );
 					counterForObstacle=0;
-				}
+				}*/
  			}
 		}
 	}	
