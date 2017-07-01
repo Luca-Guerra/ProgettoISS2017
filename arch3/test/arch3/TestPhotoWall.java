@@ -71,8 +71,8 @@ public class TestPhotoWall {
 			Thread.sleep(1000);
 			assertTrue("execTest", console.solveGoal("value(state,X)").getVarValue("X").toString().equals("photofromrobot"));
 		} catch (Exception e) {
-			System.out.println(e.getMessage());
-			fail("execTest " + e.getMessage());
+			System.out.println(e.getStackTrace());
+			fail("execTest " + e.getStackTrace());
 		}
 	}
 }

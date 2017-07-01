@@ -80,12 +80,13 @@ QActor console context ctxPc {
 		switchToPlan checkRestartSystem; // control the system restart
 		switchToPlan checkStopFromUser;
 		switchToPlan checkRobotCommunications;
+		switchToPlan checkAreaB;
 		repeatPlan
 	
 	Plan checkRobotCommunications resumeLastPlan
 		receiveMsg time(1000);
 		onMsg obstacle_ack:obstacle_ack -> switchToPlan robotFindObstacle;
-		onMsg photo_wall:photo_wall(ID) -> println(ID)
+		onMsg photo_wall:photo_wall(ID) -> actorOp showPhoto(ID)
 	
 	Plan robotFindObstacle resumeLastPlan
 		println("Obstacle!");
@@ -125,8 +126,7 @@ QActor console context ctxPc {
 		[ !? actorOpDone(sonarReached,1)] demo assign(state,sonarreached);
 		// memorize the last sonar reached
 		[ !? actorOpDone(sonarReached,1)] demo inc(sonarreached,1,X);
-		[ !? actorOpDone(sonarReached,1)] forward robot -m sonarreached:sonarreached;
-		[ ?? actorOpDone(sonarReached,1)] switchToPlan checkAreaB
+		[ !? actorOpDone(sonarReached,1)] forward robot -m sonarreached:sonarreached
 	
 	/*
 	 *  SCENARIO: 

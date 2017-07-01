@@ -76,6 +76,7 @@ QActor console context ctxBase {
 		switchToPlan checkRestartSystem; // control the system restart
 		switchToPlan checkStopFromUser;
 		switchToPlan checkObstacleAck;
+		switchToPlan checkAreaB;
 		repeatPlan
 	
 	Plan checkObstacleAck resumeLastPlan
@@ -127,8 +128,7 @@ QActor console context ctxBase {
 		[ !? actorOpDone(sonarReached,1)] demo assign(state,sonarreached);
 		// memorize the last sonar reached
 		[ !? actorOpDone(sonarReached,1)] demo inc(sonarreached,1,X);
-		[ !? actorOpDone(sonarReached,1)] forward robot -m sonarreached:sonarreached;
-		[ ?? actorOpDone(sonarReached,1)] switchToPlan checkAreaB
+		[ !? actorOpDone(sonarReached,1)] forward robot -m sonarreached:sonarreached
 		
 	/*
 	 *  SCENARIO: 
